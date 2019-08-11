@@ -23,6 +23,7 @@
 #pragma once
 
 #include "twopad.h"
+#include "ps2_pad.h"
 
 // Borrowing a bunch from onepad, which borrowed from Lilypad.
 

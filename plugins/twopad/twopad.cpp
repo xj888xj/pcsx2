@@ -23,6 +23,7 @@
 #include "twopad.h"
 #include "mt_queue.h"
 #include "poll.h"
+#include "ps2_pad.h"
 
 const u32 version = PS2E_PAD_VERSION;
 const u32 revision = 1;
@@ -36,6 +37,16 @@ std::string log_path("logs/");
 keyEvent event;
 static keyEvent s_event;
 MtQueue<keyEvent> g_ev_fifo;
+
+std::array<ps2_pad, 2>ps2_gamepad;
+
+//Linux
+#if defined(__unix__)
+Display *GSdsp;
+Window GSwin;
+
+#include "linux/keyboard_x11.h"
+#endif
 
 EXPORT_C_(u32) PS2EgetLibType()
 {
@@ -57,6 +68,8 @@ EXPORT_C_(s32) PADinit(u32 flags)
 {
     Pad::reset_all();
     query.reset();
+    ps2_gamepad[0].Init();
+    ps2_gamepad[1].Init();
     slots = {0, 0};
 
     return 0;
@@ -66,31 +79,47 @@ EXPORT_C_(s32) PADinit(u32 flags)
 EXPORT_C_(s32) PADopen(void *pDsp)
 {
     g_ev_fifo.reset();
+
+#if defined(__unix__)
+    GSdsp = *(Display **)pDsp;
+    GSwin = (Window) * (((u32 *)pDsp) + 1);
+
+    SetAutoRepeat(false);
+#endif
+
     return 0;
 }
 
 // Called when emulation is stopped for any reason.
 EXPORT_C_(void) PADclose()
 {
+    g_ev_fifo.reset();
 
+#if defined(__unix__)
+    SetAutoRepeat(true);
+#endif
 }
 
 // Called once.
 EXPORT_C_(void) PADshutdown()
 {
-
+    g_ev_fifo.reset();
 }
 
 // Get the path to the ini directory.
 EXPORT_C_(void) PADsetSettingsDir(const char *dir)
 {
-    if ((dir != nullptr) && (dir != "")) ini_path = dir;
+    std::string str_dir(dir);
+
+    if (!str_dir.empty()) ini_path = str_dir;
 }
 
 // Get the path to the log directory.
 EXPORT_C_(void) PADsetLogDir(const char *dir)
 {
-    if ((dir != nullptr) && (dir != "")) log_path = dir;
+    std::string str_dir(dir);
+
+    if (!str_dir.empty()) log_path = str_dir;
 }
 
 // PADkeyEvent is called every vsync. (Return NULL if there's no event.)
@@ -114,7 +143,7 @@ EXPORT_C_(u8) PADpoll(u8 value)
 
 // 1 for pad 1 support, 2 for pad 2 support, and 3 for both. 
 // Everyone returns 3.
-EXPORT_C_(u32) CALLBACK PADquery()
+EXPORT_C_(u32) PADquery()
 {
     return 3;
 }
@@ -128,20 +157,38 @@ EXPORT_C_(u32) CALLBACK PADquery()
 
 // Note that PADupdate can be called from a different thread than the other functions, 
 // so mutex or other multithreading primitives have to be added to maintain data integrity.
-EXPORT_C_(void) CALLBACK PADupdate(int pad)
+EXPORT_C_(void) PADupdate(int pad)
 {
+#if defined(__unix__)
+    // Gamepad inputs don't count as an activity. Therefore screensaver will
+    // be fired after a couple of minutes.
+    // Emulate an user activity.
+    static int count = 0;
+    count++;
 
+    // 1 call every 4096 Vsync is enough.
+    if ((count & 0xFFF) == 0) 
+    {
+        XResetScreenSaver(GSdsp);
+    }
+#endif
+
+    // Actually PADupdate is always called with pad == 0. So you need to update both
+    // pads. -- Gregory
+
+    // Poll keyboard/mouse event. There is currently no way to separate pad0 from pad1 event.
+    // So we will populate both pads at the same time.
 }
 
 // Send a key event from wx-gui to pad
 // Note: On linux GSOpen2, wx-gui and pad share the same event buffer. Wx-gui reads and deletes event
 // before the pad saw them. So the gui needs to send them back to the pad.
-EXPORT_C_(void) CALLBACK PADWriteEvent(keyEvent &evt)
+EXPORT_C_(void) PADWriteEvent(keyEvent &evt)
 {
     g_ev_fifo.push(evt);
 }
 
-EXPORT_C_(void) CALLBACK PADgsDriverInfo(GSdriverInfo *info)
+EXPORT_C_(void) PADgsDriverInfo(GSdriverInfo *info)
 {
 
 }
@@ -178,17 +225,17 @@ EXPORT_C_(s32) PADsetSlot(u8 port, u8 slot)
     return 1;
 }
 
-EXPORT_C_(void) CALLBACK PADconfigure()
+EXPORT_C_(void) PADconfigure()
 {
 
 }
 
-EXPORT_C_(void) CALLBACK PADabout()
+EXPORT_C_(void) PADabout()
 {
 
 }
 
-EXPORT_C_(s32) CALLBACK PADtest()
+EXPORT_C_(s32) PADtest()
 {
     return 0;
 }

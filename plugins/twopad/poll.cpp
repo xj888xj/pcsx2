@@ -181,45 +181,46 @@ u8 pad_poll(u8 value)
                     query.set_result(configExit);
                     return 0xF3;
                 }
-                // fallthrough on purpose (but I don't know why)
+                break; // Comment out if it breaks anything.
 
             case CMD_READ_DATA_AND_VIBRATE:
             {
                 query.response[2] = 0x5A;
 
-                //uint16_t buttons = key_status->get(query.port);
+                u16 buttons = ps2_gamepad[query.port].get();
 
                 query.numBytes = 5;
 
-                //query.response[3] = (buttons >> 8) & 0xFF;
-                //query.response[4] = (buttons >> 0) & 0xFF;
+                query.response[3] = (buttons >> 8) & 0xFF;
+                query.response[4] = (buttons >> 0) & 0xFF;
 
                 if (pad->mode != MODE_DIGITAL)
                 {
                     query.numBytes = 9;
 
-                    //query.response[5] = key_status->get(query.port, PAD_R_RIGHT);
-                    //query.response[6] = key_status->get(query.port, PAD_R_UP);
-                    //query.response[7] = key_status->get(query.port, PAD_L_RIGHT);
-                    //query.response[8] = key_status->get(query.port, PAD_L_UP);
+                    query.response[5] = ps2_gamepad[query.port].get(PAD_R_RIGHT);
+                    query.response[6] = ps2_gamepad[query.port].get(PAD_R_UP);
+                    query.response[7] = ps2_gamepad[query.port].get(PAD_L_RIGHT);
+                    query.response[8] = ps2_gamepad[query.port].get(PAD_L_UP);
 
                     if (pad->mode != MODE_ANALOG)
                     {
                         query.numBytes = 21;
 
-                        //query.response[9] = !test_bit(buttons, 13) ? key_status->get(query.port, PAD_RIGHT) : 0;
-                        //query.response[10] = !test_bit(buttons, 15) ? key_status->get(query.port, PAD_LEFT) : 0;
-                        //query.response[11] = !test_bit(buttons, 12) ? key_status->get(query.port, PAD_UP) : 0;
-                        //query.response[12] = !test_bit(buttons, 14) ? key_status->get(query.port, PAD_DOWN) : 0;
+                        query.response[9] = ps2_gamepad[query.port].get_result(buttons, PAD_RIGHT);
+                        query.response[10] = ps2_gamepad[query.port].get_result(buttons, PAD_LEFT);
+                        query.response[11] = ps2_gamepad[query.port].get_result(buttons, PAD_UP);
+                        query.response[12] = ps2_gamepad[query.port].get_result(buttons, PAD_DOWN);
 
-                        //query.response[13] = !test_bit(buttons, 4) ? key_status->get(query.port, PAD_TRIANGLE) : 0;
-                        //query.response[14] = !test_bit(buttons, 5) ? key_status->get(query.port, PAD_CIRCLE) : 0;
-                        //query.response[15] = !test_bit(buttons, 6) ? key_status->get(query.port, PAD_CROSS) : 0;
-                        //query.response[16] = !test_bit(buttons, 7) ? key_status->get(query.port, PAD_SQUARE) : 0;
-                        //query.response[17] = !test_bit(buttons, 2) ? key_status->get(query.port, PAD_L1) : 0;
-                        //query.response[18] = !test_bit(buttons, 3) ? key_status->get(query.port, PAD_R1) : 0;
-                        //query.response[19] = !test_bit(buttons, 0) ? key_status->get(query.port, PAD_L2) : 0;
-                        //query.response[20] = !test_bit(buttons, 1) ? key_status->get(query.port, PAD_R2) : 0;
+                        query.response[13] = ps2_gamepad[query.port].get_result(buttons, PAD_TRIANGLE);
+                        query.response[14] = ps2_gamepad[query.port].get_result(buttons, PAD_CIRCLE);
+                        query.response[15] = ps2_gamepad[query.port].get_result(buttons, PAD_CROSS);
+                        query.response[16] = ps2_gamepad[query.port].get_result(buttons, PAD_SQUARE);
+
+                        query.response[17] = ps2_gamepad[query.port].get_result(buttons, PAD_L1);
+                        query.response[18] = ps2_gamepad[query.port].get_result(buttons, PAD_R1);
+                        query.response[19] = ps2_gamepad[query.port].get_result(buttons, PAD_L2);
+                        query.response[20] = ps2_gamepad[query.port].get_result(buttons, PAD_R2);
                     }
                 }
             }
@@ -254,14 +255,8 @@ u8 pad_poll(u8 value)
                 break;
 
             case CMD_QUERY_MODEL_AND_MODE:
-                if (IsDualshock2())
-                {
-                    query.set_final_result(queryModelDS2);
-                }
-                else
-                {
-                    query.set_final_result(queryModelDS1);
-                }
+                query.set_final_result(IsDualshock2() ? queryModelDS2 : queryModelDS1);
+                
                 // Not digital mode.
                 query.response[5] = (pad->mode & 0xF) != 1;
                 break;

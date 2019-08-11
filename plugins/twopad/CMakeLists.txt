@@ -13,16 +13,38 @@ set(twopadFinalFlags
     -Wall
     -Wno-parentheses
     )
-    
-# onepad sources
+
+# twopad linux sources
+set(twopadLinuxSources
+linux/keyboard_x11.cpp)
+
+# twopad linux headers
+set(twopadLinuxHeaders
+linux/keyboard_x11.h)
+
+# twopad sources
 set(twopadSources
     twopad.cpp
-    poll.cpp)
+    poll.cpp
+    ps2_pad.cpp)
 
-# onepad headers
+# twopad headers
 set(twopadHeaders
     twopad.h
-    poll.h)
+    poll.h
+    ps2_pad.h)
+
+if(Windows)
+    # to be added.
+else()
+set(twopadSources
+    ${twopadSources}
+    ${twopadLinuxSources})
+
+set(twopadHeaders
+    ${twopadHeaders}
+    ${twopadLinuxHeaders})
+endif()
 
 set(twopadFinalLibs ${SDL2_LIBRARIES})
 add_definitions(-DSDL_BUILD)
