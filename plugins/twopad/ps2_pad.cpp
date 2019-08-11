@@ -23,13 +23,13 @@
 #include "twopad.h"
 #include "ps2_pad.h"
 
-
 void ps2_pad::Init()
 {
+        m_state_access = false;
+        
         m_button = 0xFFFF;
         m_internal_button_kbd = 0xFFFF;
         m_internal_button_joy = 0xFFFF;
-        m_state_access = false;
 
         for (int index = 0; index < MAX_KEYS; index++)
         {
@@ -88,6 +88,14 @@ void ps2_pad::release(u32 index)
         else
             set_bit(m_internal_button_joy, index);
     }
+}
+
+void ps2_pad::set(u32 index, s32 value)
+{
+    if (value != 0)
+        press(index, value);
+    else
+        release(index);
 }
 
 u16 ps2_pad::get()

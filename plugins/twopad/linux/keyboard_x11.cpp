@@ -23,7 +23,10 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include <array>
 #include "keyboard_x11.h"
+
+std::array<std::array<int, MAX_KEYS>,2> key_to_x11;
 
 extern Display *GSdsp;
 extern Window GSwin;
@@ -45,81 +48,37 @@ static bool s_Shift = false;
 static unsigned int s_previous_mouse_x = 0;
 static unsigned int s_previous_mouse_y = 0;
 
-// Eh, just for testing purposes. This will be replaced.
-void get_hard_coded_key(u32 key, s32 *pad, s32 *index)
+void init_x11_keys()
 {
-    switch(key)
-    {
-        case XK_a:
-            *pad = 0;
-            *index = PAD_L2;
-            break;
+    key_to_x11[0][PAD_L2] = XK_a;
+    key_to_x11[0][PAD_R2] = XK_semicolon;
+    key_to_x11[0][PAD_L1] = XK_w;
+    key_to_x11[0][PAD_R1] = XK_p;
+    key_to_x11[0][PAD_L3] = XK_q;
+    key_to_x11[0][PAD_R3] = XK_o;
 
-        case XK_semicolon:
-            *pad = 0;
-            *index = PAD_R2;
-            break;
+    key_to_x11[0][PAD_TRIANGLE] = XK_i;
+    key_to_x11[0][PAD_CIRCLE] = XK_l;
+    key_to_x11[0][PAD_CROSS] = XK_k;
+    key_to_x11[0][PAD_SQUARE] = XK_j;
 
-        case XK_w:
-            *pad = 0;
-            *index = PAD_L1;
-            break;
+    key_to_x11[0][PAD_SELECT] = XK_v;
+    key_to_x11[0][PAD_START] = XK_n;
 
-        case XK_p:
-            *pad = 0;
-            *index = PAD_R1;
-            break;
+    key_to_x11[0][PAD_UP] = XK_e;
+    key_to_x11[0][PAD_RIGHT] = XK_f;
+    key_to_x11[0][PAD_DOWN] = XK_d;
+    key_to_x11[0][PAD_LEFT] = XK_s;
 
-        case XK_i:
-            *pad = 0;
-            *index = PAD_TRIANGLE;
-            break;
+    key_to_x11[0][PAD_L_UP] = XK_Up;
+    key_to_x11[0][PAD_L_RIGHT] = XK_Right;
+    key_to_x11[0][PAD_L_DOWN] = XK_Down;
+    key_to_x11[0][PAD_L_LEFT] = XK_Left;
 
-        case XK_l:
-            *pad = 0;
-            *index = PAD_CIRCLE;
-            break;
-
-        case XK_k:
-            *pad = 0;
-            *index = PAD_CROSS;
-            break;
-
-        case XK_j:
-            *pad = 0;
-            *index = PAD_SQUARE;
-            break;
-
-        case XK_v:
-            *pad = 0;
-            *index = PAD_SELECT;
-            break;
-
-        case XK_n:
-            *pad = 0;
-            *index = PAD_START;
-            break;
-
-        case XK_e:
-            *pad = 0;
-            *index = PAD_UP;
-            break;
-
-        case XK_f:
-            *pad = 0;
-            *index = PAD_RIGHT;
-            break;
-
-        case XK_d:
-            *pad = 0;
-            *index = PAD_DOWN;
-            break;
-
-        case XK_s:
-            *pad = 0;
-            *index = PAD_LEFT;
-            break;
-    }
+    key_to_x11[0][PAD_R_UP] = XK_KP_8;
+    key_to_x11[0][PAD_R_RIGHT] = XK_KP_6;
+    key_to_x11[0][PAD_R_DOWN] = XK_KP_2;
+    key_to_x11[0][PAD_R_LEFT] = XK_KP_4;
 }
 
 void AnalyzeKeyEvent(keyEvent &evt)
@@ -130,9 +89,17 @@ void AnalyzeKeyEvent(keyEvent &evt)
 
     // Check to see if there is a key with value key that is set to any button on any controller.
     // If there is, pad is the pad it is on, and index is the button value.
-
-    // Needs to be written.
-    get_hard_coded_key(evt.key, &pad, &index);
+    for(int i = 0; i < 2; i++)
+    {
+        for(int j = 0; j < MAX_KEYS; j++)
+        {
+            if (key_to_x11[i][j] == evt.key)
+            {
+                pad = i;
+                index = j;
+            }
+        }
+    }
     //if (index != -1) printf("Key pressed: key = %i\n", index);
 
     switch (evt.evt)
