@@ -20,6 +20,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
+#pragma once
+
 #define PADdefs
 #include "PS2Edefs.h"
 #include "PS2Eext.h"
+
+#include <algorithm>
+#include <array>
+
+#include "mt_queue.h"

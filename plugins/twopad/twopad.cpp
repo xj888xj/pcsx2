@@ -21,6 +21,8 @@
  */
 
 #include "twopad.h"
+#include "mt_queue.h"
+#include "poll.h"
 
 const u32 version = PS2E_PAD_VERSION;
 const u32 revision = 1;
@@ -30,6 +32,10 @@ const u32 pad_save_state_version ((revision << 8) | (build << 0));
 
 std::string ini_path("inis/");
 std::string log_path("logs/");
+
+keyEvent event;
+static keyEvent s_event;
+MtQueue<keyEvent> g_ev_fifo;
 
 EXPORT_C_(u32) PS2EgetLibType()
 {
@@ -49,12 +55,17 @@ EXPORT_C_(u32) PS2EgetLibVersion2(u32 type)
 // Called once.
 EXPORT_C_(s32) PADinit(u32 flags)
 {
+    Pad::reset_all();
+    query.reset();
+    slots = {0, 0};
+
     return 0;
 }
 
 // Called if emulation is started or restarted.
 EXPORT_C_(s32) PADopen(void *pDsp)
 {
+    g_ev_fifo.reset();
     return 0;
 }
 
@@ -85,17 +96,20 @@ EXPORT_C_(void) PADsetLogDir(const char *dir)
 // PADkeyEvent is called every vsync. (Return NULL if there's no event.)
 EXPORT_C_(keyEvent *) PADkeyEvent()
 {
-    return nullptr;
+    s_event = event;
+    event.evt = 0;
+    event.key = 0;
+    return &s_event;
 }
 
 EXPORT_C_(u8) PADstartPoll(int pad)
 {
-    return 0;
+    return pad_start_poll(pad);
 }
 
-EXPORT_C_(u8) CALLBACK PADpoll(u8 value)
+EXPORT_C_(u8) PADpoll(u8 value)
 {
-    return 0;
+    return pad_poll(value);
 }
 
 // 1 for pad 1 support, 2 for pad 2 support, and 3 for both. 
@@ -124,7 +138,7 @@ EXPORT_C_(void) CALLBACK PADupdate(int pad)
 // before the pad saw them. So the gui needs to send them back to the pad.
 EXPORT_C_(void) CALLBACK PADWriteEvent(keyEvent &evt)
 {
-
+    g_ev_fifo.push(evt);
 }
 
 EXPORT_C_(void) CALLBACK PADgsDriverInfo(GSdriverInfo *info)
@@ -140,6 +154,9 @@ EXPORT_C_(s32) PADfreeze(u8 mode, freezeData *data)
 // Returns 1 if the pad plugin wants a multitap on the specified port, and 0 otherwise.
 EXPORT_C_(s32) PADqueryMtap(u8 port)
 {
+    port--;
+    if (port > 1) return 0;
+    //return config.multitap[port];
     return 0;
 }
 
@@ -149,7 +166,16 @@ EXPORT_C_(s32) PADqueryMtap(u8 port)
 // emulator can allow Multitap to be enabled/disabled elsewhere.
 EXPORT_C_(s32) PADsetSlot(u8 port, u8 slot)
 {
-    return 0;
+    port--;
+    slot--;
+    if (port > 1 || slot > 3)
+    {
+        return 0;
+    }
+    // Even if no pad there, record the slot, as it is the active slot regardless.
+    slots[port] = slot;
+
+    return 1;
 }
 
 EXPORT_C_(void) CALLBACK PADconfigure()

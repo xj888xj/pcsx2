@@ -16,11 +16,13 @@ set(twopadFinalFlags
     
 # onepad sources
 set(twopadSources
-    twopad.cpp)
+    twopad.cpp
+    poll.cpp)
 
 # onepad headers
 set(twopadHeaders
-    twopad.h)
+    twopad.h
+    poll.h)
 
 set(twopadFinalLibs ${SDL2_LIBRARIES})
 add_definitions(-DSDL_BUILD)
