@@ -25,8 +25,8 @@
 #include "twopad.h"
 #include <array>
 
-static const u32 MAX_ANALOG_VALUE = 32766;
-static const u32 m_analog_released_val = 0x7F;
+static const s32 MAX_ANALOG_VALUE = 32766;
+static const s32 m_analog_released_val = 0x7F;
 
 class PADAnalog
 {

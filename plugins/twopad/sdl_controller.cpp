@@ -57,7 +57,6 @@ void init_sdl()
         SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile("gamecontrollerdb.txt", "rb"), 1);
     }
 
-    //init_mappings();
     scan_controllers();
 }
 

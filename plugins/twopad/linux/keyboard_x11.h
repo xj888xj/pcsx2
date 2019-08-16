@@ -23,12 +23,14 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include "twopad.h"
+
+using  Double = std::array<int, 2>; 
+extern std::map<int, Double> key_to_x11_map;
 
 extern void PollForX11KeyboardInput();
 extern bool PollX11KeyboardMouseEvent(u32 &pkey);
 
 extern void SetAutoRepeat(bool autorep);
 extern void init_x11_keys();
-
-extern std::array<std::array<int, MAX_KEYS>,2> key_to_x11;

@@ -162,6 +162,7 @@ bool ps2_pad::analog_is_reversed(u32 index)
         default:
             return false;
     }*/
+    //return false;
     return false;
 }
 

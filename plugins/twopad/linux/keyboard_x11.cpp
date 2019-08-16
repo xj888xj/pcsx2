@@ -24,9 +24,10 @@
 #include <gdk/gdkkeysyms.h>
 
 #include <array>
+#include <map>
 #include "keyboard_x11.h"
 
-std::array<std::array<int, MAX_KEYS>,2> key_to_x11;
+std::map<int, Double> key_to_x11_map;
 
 extern Display *GSdsp;
 extern Window GSwin;
@@ -50,35 +51,35 @@ static unsigned int s_previous_mouse_y = 0;
 
 void init_x11_keys()
 {
-    key_to_x11[0][PAD_L2] = XK_a;
-    key_to_x11[0][PAD_R2] = XK_semicolon;
-    key_to_x11[0][PAD_L1] = XK_w;
-    key_to_x11[0][PAD_R1] = XK_p;
-    key_to_x11[0][PAD_L3] = XK_q;
-    key_to_x11[0][PAD_R3] = XK_o;
+    key_to_x11_map[XK_a] = { 0, PAD_L2 };
+    key_to_x11_map[XK_semicolon] = { 0, PAD_R2 };
+    key_to_x11_map[XK_w] = { 0, PAD_L1 };
+    key_to_x11_map[XK_p] = { 0, PAD_R1 };
+    key_to_x11_map[XK_q] = { 0, PAD_L3 };
+    key_to_x11_map[XK_o] = { 0, PAD_R3 };
 
-    key_to_x11[0][PAD_TRIANGLE] = XK_i;
-    key_to_x11[0][PAD_CIRCLE] = XK_l;
-    key_to_x11[0][PAD_CROSS] = XK_k;
-    key_to_x11[0][PAD_SQUARE] = XK_j;
+    key_to_x11_map[XK_i] = { 0, PAD_TRIANGLE };
+    key_to_x11_map[XK_l] = { 0, PAD_CIRCLE };
+    key_to_x11_map[XK_k] = { 0, PAD_CROSS };
+    key_to_x11_map[XK_j] = { 0, PAD_SQUARE };
 
-    key_to_x11[0][PAD_SELECT] = XK_v;
-    key_to_x11[0][PAD_START] = XK_n;
+    key_to_x11_map[XK_v] = { 0, PAD_SELECT };
+    key_to_x11_map[XK_n] = { 0, PAD_START };
 
-    key_to_x11[0][PAD_UP] = XK_e;
-    key_to_x11[0][PAD_RIGHT] = XK_f;
-    key_to_x11[0][PAD_DOWN] = XK_d;
-    key_to_x11[0][PAD_LEFT] = XK_s;
+    key_to_x11_map[XK_e] = { 0, PAD_UP };
+    key_to_x11_map[XK_f] = { 0, PAD_RIGHT };
+    key_to_x11_map[XK_d] = { 0, PAD_DOWN };
+    key_to_x11_map[XK_s] = { 0, PAD_LEFT };
 
-    key_to_x11[0][PAD_L_UP] = XK_Up;
-    key_to_x11[0][PAD_L_RIGHT] = XK_Right;
-    key_to_x11[0][PAD_L_DOWN] = XK_Down;
-    key_to_x11[0][PAD_L_LEFT] = XK_Left;
+    key_to_x11_map[XK_Up] = { 0, PAD_L_UP };
+    key_to_x11_map[XK_Right] = { 0, PAD_L_RIGHT };
+    key_to_x11_map[XK_Down] = { 0, PAD_L_DOWN };
+    key_to_x11_map[XK_Left] = { 0, PAD_L_LEFT };
 
-    key_to_x11[0][PAD_R_UP] = XK_KP_8;
-    key_to_x11[0][PAD_R_RIGHT] = XK_KP_6;
-    key_to_x11[0][PAD_R_DOWN] = XK_KP_2;
-    key_to_x11[0][PAD_R_LEFT] = XK_KP_4;
+    key_to_x11_map[XK_KP_8] = { 0, PAD_R_UP };
+    key_to_x11_map[XK_KP_6] = { 0, PAD_R_RIGHT };
+    key_to_x11_map[XK_KP_2] = { 0, PAD_R_DOWN };
+    key_to_x11_map[XK_KP_4] = { 0, PAD_R_LEFT };
 }
 
 void AnalyzeKeyEvent(keyEvent &evt)
@@ -89,16 +90,10 @@ void AnalyzeKeyEvent(keyEvent &evt)
 
     // Check to see if there is a key with value key that is set to any button on any controller.
     // If there is, pad is the pad it is on, and index is the button value.
-    for(int i = 0; i < 2; i++)
+    if (key_to_x11_map.count(evt.key) > 0) 
     {
-        for(int j = 0; j < MAX_KEYS; j++)
-        {
-            if (key_to_x11[i][j] == evt.key)
-            {
-                pad = i;
-                index = j;
-            }
-        }
+        pad = key_to_x11_map[evt.key][0];
+        index = key_to_x11_map[evt.key][1];
     }
     //if (index != -1) printf("Key pressed: key = %i\n", index);
 
