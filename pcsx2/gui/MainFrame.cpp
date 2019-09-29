@@ -336,8 +336,8 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 	, m_menuCDVD			( *new wxMenu() )
 	, m_menuSys				( *new wxMenu() )
 	, m_menuConfig			( *new wxMenu() )
-	, m_menuMisc			( *new wxMenu() )
-	, m_menuDebug			( *new wxMenu() )
+	, m_submenuPluginConfig	( *new wxMenu() )
+	, m_menuWindows			( *new wxMenu() )
 	, m_menuCapture			( *new wxMenu() )
 	, m_submenuVideoCapture	( *new wxMenu() )
 #ifndef DISABLE_RECORDING
@@ -346,9 +346,9 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 	, m_LoadStatesSubmenu( *MakeStatesSubMenu( MenuId_State_Load01, MenuId_State_LoadBackup ) )
 	, m_SaveStatesSubmenu( *MakeStatesSubMenu( MenuId_State_Save01 ) )
 
-	, m_MenuItem_Console( *new wxMenuItem( &m_menuMisc, MenuId_Console, _("&Show Console"), wxEmptyString, wxITEM_CHECK ) )
+	, m_MenuItem_Console( *new wxMenuItem( &m_menuWindows, MenuId_Console, _("&Show Console"), wxEmptyString, wxITEM_CHECK ) )
 #if defined(__unix__)
-	, m_MenuItem_Console_Stdio( *new wxMenuItem( &m_menuMisc, MenuId_Console_Stdio, _("&Console to Stdio"), wxEmptyString, wxITEM_CHECK ) )
+	, m_MenuItem_Console_Stdio( *new wxMenuItem( &m_menuWindows, MenuId_Console_Stdio, _("&Console to Stdio"), wxEmptyString, wxITEM_CHECK ) )
 #endif
 
 {
@@ -364,19 +364,10 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 	m_menubar.Append( &m_menuSys,		_("&System") );
 	m_menubar.Append( &m_menuCDVD,		_("CD&VD") );
 	m_menubar.Append( &m_menuConfig,	_("&Config") );
-	m_menubar.Append( &m_menuMisc,		_("&Misc") );
-	m_menubar.Append( &m_menuDebug,		_("&Debug") );
 	m_menubar.Append( &m_menuCapture,	_("&Capture") );
+	m_menubar.Append( &m_menuWindows,	_("&Windows") );
 
 	SetMenuBar( &m_menubar );
-
-#ifndef DISABLE_RECORDING
-	// Append the Recording options if previously enabled and setting has been picked up from ini
-	if (g_Conf->EmuOptions.EnableRecordingTools)
-	{
-		m_menubar.Append(&m_menuRecording, _("&Recording"));
-	}
-#endif
 
 	// ------------------------------------------------------------------------
 
@@ -446,11 +437,14 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 		_("For running raw PS2 binaries directly"));
 
 	m_menuSys.AppendSeparator();
+	
 	m_menuSys.Append(MenuId_Sys_SuspendResume,	_("Initializing..."));
-	m_menuSys.AppendSeparator();
 
-	//m_menuSys.Append(MenuId_Sys_Close,		_("Close"),
-	//	_("Stops emulation and closes the GS window."));
+	m_menuSys.Append(MenuId_Sys_Shutdown,	_("Shut&down"),
+		_("Wipes all internal VM states and shuts down plugins."));
+	m_menuSys.FindItem(MenuId_Sys_Shutdown)->Enable(false);
+
+	m_menuSys.AppendSeparator();
 
 	m_menuSys.Append(MenuId_Sys_LoadStates,	_("&Load state"), &m_LoadStatesSubmenu);
 	m_menuSys.Append(MenuId_Sys_SaveStates,	_("&Save state"), &m_SaveStatesSubmenu);
@@ -460,29 +454,9 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 
 	m_menuSys.AppendSeparator();
 
-	m_menuSys.Append(MenuId_EnablePatches,	_("Automatic &Gamefixes"),
-		_("Automatically applies needed Gamefixes to known problematic games"), wxITEM_CHECK);
-
-	m_menuSys.Append(MenuId_EnableCheats,	_("Enable &Cheats"),
-		wxEmptyString, wxITEM_CHECK);
-
-	m_menuSys.Append(MenuId_EnableWideScreenPatches,	_("Enable &Widescreen Patches"),
-		_("Enabling Widescreen Patches may occasionally cause issues."), wxITEM_CHECK);
-
-#ifndef DISABLE_RECORDING
-	m_menuSys.Append(MenuId_EnableRecordingTools, _("Enable &Recording Tools"),
-		wxEmptyString, wxITEM_CHECK);
-#endif
-
-	if(IsDebugBuild || IsDevBuild)
-		m_menuSys.Append(MenuId_EnableHostFs,	_("Enable &Host Filesystem"),
-			wxEmptyString, wxITEM_CHECK);
+	m_menuSys.AppendCheckItem(MenuId_Debug_CreateBlockdump, _("Create &Blockdump"), _("Creates a block dump for debugging purposes."));
 
 	m_menuSys.AppendSeparator();
-
-	m_menuSys.Append(MenuId_Sys_Shutdown,	_("Shut&down"),
-		_("Wipes all internal VM states and shuts down plugins."));
-	m_menuSys.FindItem(MenuId_Sys_Shutdown)->Enable(false);
 
 	m_menuSys.Append(MenuId_Exit,			_("E&xit"),
 		AddAppName(_("Closing %s may be hazardous to your health")));
@@ -506,60 +480,75 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
 
 	// ------------------------------------------------------------------------
 
-	m_menuConfig.Append(MenuId_Config_SysSettings,	_("Emulation &Settings") );
-	m_menuConfig.Append(MenuId_Config_McdSettings,	_("&Memory cards") );
-	m_menuConfig.Append(MenuId_Config_BIOS,			_("&Plugin/BIOS Selector") );
+	m_menuConfig.Append(MenuId_Config_SysSettings,	_("Emulation...") );
+	m_menuConfig.Append(MenuId_Config_McdSettings,	_("&Memory cards...") );
+	m_menuConfig.Append(MenuId_Config_BIOS,			_("&Plugin/BIOS...") );
+	m_menuConfig.Append(MenuID_Plugin_Config,	_("&Plugins"), &m_submenuPluginConfig);
+
+#ifdef PCSX2_DEVBUILD
+	m_menuConfig.Append(MenuId_Debug_Logging,	_("&Logging..."),			wxEmptyString);
+#endif
+
+	m_menuConfig.Append( MenuId_ChangeLang,		L"&Language..." ); // Always in English
 
 	m_menuConfig.AppendSeparator();
 
-	m_menuConfig.Append(MenuId_Config_GS,		_("&Video (GS)"),		m_PluginMenuPacks[PluginId_GS]);
-	m_menuConfig.Append(MenuId_Config_SPU2,		_("&Audio (SPU2)"),		m_PluginMenuPacks[PluginId_SPU2]);
-	m_menuConfig.Append(MenuId_Config_PAD,		_("&Controllers (PAD)"),m_PluginMenuPacks[PluginId_PAD]);
-	m_menuConfig.Append(MenuId_Config_DEV9,		_("&Dev9"),				m_PluginMenuPacks[PluginId_DEV9]);
-	m_menuConfig.Append(MenuId_Config_USB,		_("&USB"),				m_PluginMenuPacks[PluginId_USB]);
-	m_menuConfig.Append(MenuId_Config_FireWire,	_("&Firewire"),			m_PluginMenuPacks[PluginId_FW]);
+	m_submenuPluginConfig.Append(MenuId_Config_GS,		_("&Video"),		m_PluginMenuPacks[PluginId_GS]);
+	m_submenuPluginConfig.Append(MenuId_Config_SPU2,		_("&Audio"),		m_PluginMenuPacks[PluginId_SPU2]);
+	m_submenuPluginConfig.Append(MenuId_Config_PAD,		_("&Controllers"),m_PluginMenuPacks[PluginId_PAD]);
+	m_submenuPluginConfig.Append(MenuId_Config_DEV9,		_("&Dev9"),				m_PluginMenuPacks[PluginId_DEV9]);
+	m_submenuPluginConfig.Append(MenuId_Config_USB,		_("&USB"),				m_PluginMenuPacks[PluginId_USB]);
+	m_submenuPluginConfig.Append(MenuId_Config_FireWire,	_("&Firewire"),			m_PluginMenuPacks[PluginId_FW]);
 
 	//m_menuConfig.AppendSeparator();
-	//m_menuConfig.Append(MenuId_Config_Patches,	_("Patches (unimplemented)"),	wxEmptyString);
-
-	m_menuConfig.AppendSeparator();
 	m_menuConfig.Append(MenuId_Config_Multitap0Toggle,	_("Multitap &1"),	wxEmptyString, wxITEM_CHECK );
 	m_menuConfig.Append(MenuId_Config_Multitap1Toggle,	_("Multitap &2"),	wxEmptyString, wxITEM_CHECK );
 
 	m_menuConfig.AppendSeparator();
+
+	m_menuConfig.Append(MenuId_EnableCheats,	_("Enable &Cheats"), wxEmptyString, wxITEM_CHECK);
+
+	m_menuConfig.Append(MenuId_EnableWideScreenPatches,	_("Enable &Widescreen Patches"),
+		_("Enabling Widescreen Patches may occasionally cause issues."), wxITEM_CHECK);
+
+	if(IsDebugBuild || IsDevBuild)
+		m_menuConfig.Append(MenuId_EnableHostFs,	_("Enable &Host Filesystem"), wxEmptyString, wxITEM_CHECK);
+
+#if defined(__unix__)
+	m_menuConfig.Append( &m_MenuItem_Console_Stdio );
+#endif
+
+	m_menuConfig.AppendSeparator();
+
 	m_menuConfig.Append(MenuId_Config_ResetAll,	_("C&lear all settings..."),
 		AddAppName(_("Clears all %s settings and re-runs the startup wizard.")));
 
 	// ------------------------------------------------------------------------
 
-	m_menuMisc.Append( &m_MenuItem_Console );
-#if defined(__unix__)
-	m_menuMisc.Append( &m_MenuItem_Console_Stdio );
-#endif
+	m_menuWindows.Append(MenuId_Debug_Open,		_("&Open Debug Window..."),	wxEmptyString);
 
-	// No dialogs implemented for these yet...
-	//m_menuMisc.Append(41, "Patch Browser...", wxEmptyString, wxITEM_NORMAL);
-	//m_menuMisc.Append(42, "Patch Finder...", wxEmptyString, wxITEM_NORMAL);
+	m_menuWindows.Append( &m_MenuItem_Console );
 
-	m_menuMisc.AppendSeparator();
+	m_menuWindows.AppendSeparator();
 
-	m_menuMisc.Append(MenuId_About,				_("&About...") );
-
-	m_menuMisc.AppendSeparator();
-	m_menuMisc.Append( MenuId_ChangeLang,		L"Change &Language" ); // Always in English
-
-	m_menuDebug.Append(MenuId_Debug_Open,		_("&Open Debug Window..."),	wxEmptyString);
-
-#ifdef PCSX2_DEVBUILD
-	m_menuDebug.Append(MenuId_Debug_Logging,	_("&Logging..."),			wxEmptyString);
-#endif
-	m_menuDebug.AppendCheckItem(MenuId_Debug_CreateBlockdump, _("Create &Blockdump"), _("Creates a block dump for debugging purposes."));
+	m_menuWindows.Append(MenuId_About,				_("&About...") );
 
 	// ------------------------------------------------------------------------
 
 	m_menuCapture.Append(MenuId_Capture_Video, _("Video"), &m_submenuVideoCapture);
 	m_submenuVideoCapture.Append(MenuId_Capture_Video_Record, _("Start Recording"));
 	m_submenuVideoCapture.Append(MenuId_Capture_Video_Stop, _("Stop Recording"))->Enable(false);
+#ifndef DISABLE_RECORDING
+	// Append the Recording options if previously enabled and setting has been picked up from ini
+	if (g_Conf->EmuOptions.EnableRecordingTools)
+	{
+		m_menuCapture.Append(MenuId_Recording, _("&Recording"), &m_menuRecording);
+	}
+#endif
+#ifndef DISABLE_RECORDING
+	m_menuCapture.Append(MenuId_EnableRecordingTools, _("Enable &Recording Tools"),
+		wxEmptyString, wxITEM_CHECK);
+#endif
 
 	m_menuCapture.Append(MenuId_Capture_Screenshot, _("Screenshot"));
 

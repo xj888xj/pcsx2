@@ -143,6 +143,7 @@ enum MenuIdentifiers
 	MenuId_Config_AppSettings,
 	MenuId_Config_BIOS,
 	MenuId_Config_Language,
+	MenuID_Plugin_Config,
 
 	// Plugin ID order is important.  Must match the order in tbl_PluginInfo.
 	MenuId_Config_GS,
@@ -189,6 +190,7 @@ enum MenuIdentifiers
 
 #ifndef DISABLE_RECORDING
 	// Recording Subsection
+	MenuId_Recording,
 	MenuId_Recording_New,
 	MenuId_Recording_Play,
 	MenuId_Recording_Stop,

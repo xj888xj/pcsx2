@@ -109,8 +109,8 @@ protected:
 	wxMenu&			m_menuCDVD;
 	wxMenu&			m_menuSys;
 	wxMenu&			m_menuConfig;
-	wxMenu&			m_menuMisc;
-	wxMenu&			m_menuDebug;
+	wxMenu&			m_submenuPluginConfig;
+	wxMenu&			m_menuWindows;
 
 	wxMenu&			m_menuCapture;
 	wxMenu&			m_submenuVideoCapture;
