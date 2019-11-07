@@ -96,15 +96,13 @@ bool InputRecordingFile::Close()
 // Write savestate flag to file
 bool InputRecordingFile::WriteSaveState() {
 	if (recordingFile == NULL)
-	{
 		return false;
-	}
 
-	fseek(recordingFile, RecordingSeekpointSaveState, SEEK_SET);
-	if (fwrite(&savestate.fromSavestate, sizeof(bool), 1, recordingFile) != 1)
-	{
+	if (fseek(recordingFile, RecordingSeekpointSaveState, SEEK_SET))
 		return false;
-	}
+
+	if (fwrite(&savestate.fromSavestate, sizeof(bool), 1, recordingFile) != 1)
+		return false;
 
 	return true;
 }
@@ -117,7 +115,7 @@ bool InputRecordingFile::WriteKeyBuf(const uint & frame, const uint port, const 
 		return false;
 	}
 
-	long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize + 18 * port + bufIndex;
+	const long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize + 18 * port + bufIndex;
 
 	if (fseek(recordingFile, seek, SEEK_SET) != 0
 		|| fwrite(&buf, 1, 1, recordingFile) != 1)
@@ -137,7 +135,7 @@ bool InputRecordingFile::ReadKeyBuf(u8 & result,const uint & frame, const uint p
 		return false;
 	}
 
-	long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize + 18 * port + bufIndex;
+	const long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize + 18 * port + bufIndex;
 	if (fseek(recordingFile, seek, SEEK_SET) != 0)
 	{
 		return false;
@@ -159,7 +157,7 @@ void InputRecordingFile::GetPadData(PadData & result, unsigned long frame)
 		return;
 	}
 
-	long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
+	const long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
 	if (fseek(recordingFile, seek, SEEK_SET) != 0
 		|| fread(result.buf, 1, RecordingBlockDataSize, recordingFile) == 0)
 	{
@@ -178,18 +176,23 @@ bool InputRecordingFile::DeletePadData(unsigned long frame)
 
 	for (unsigned long i = frame; i < MaxFrame - 1; i++)
 	{
-		long seek1 = GetBlockSeekPoint(i+1) + RecordingBlockHeaderSize;
-		long seek2 = GetBlockSeekPoint(i) + RecordingBlockHeaderSize;
+		const long seek1 = GetBlockSeekPoint(i+1) + RecordingBlockHeaderSize;
+		const long seek2 = GetBlockSeekPoint(i) + RecordingBlockHeaderSize;
+
+		if (fseek(recordingFile, seek1, SEEK_SET))
+            return false;
 
 		u8 buf[2][18];
-		fseek(recordingFile, seek1, SEEK_SET);
 		int rSize = fread(buf, 1, RecordingBlockDataSize, recordingFile);
 		if (rSize != RecordingBlockDataSize)
 		{
 			recordingConLog(wxString::Format("[REC]: Error encountered when reading from file: Expected %d bytes, read %d instead.\n", RecordingBlockDataSize, rSize));
 			return false;
 		}
-		fseek(recordingFile, seek2, SEEK_SET);
+
+		if (fseek(recordingFile, seek2, SEEK_SET))
+            return false;
+
 		rSize = fwrite(buf, 1, RecordingBlockDataSize, recordingFile);
 		if (rSize != RecordingBlockDataSize)
 		{
@@ -213,18 +216,23 @@ bool InputRecordingFile::InsertPadData(unsigned long frame, const PadData& key)
 
 	for (unsigned long i = MaxFrame - 1; i >= frame; i--)
 	{
-		long seek1 = GetBlockSeekPoint(i) + RecordingBlockHeaderSize;
-		long seek2 = GetBlockSeekPoint(i+1) + RecordingBlockHeaderSize;
+		const long seek1 = GetBlockSeekPoint(i) + RecordingBlockHeaderSize;
+		const long seek2 = GetBlockSeekPoint(i+1) + RecordingBlockHeaderSize;
+
+		if (fseek(recordingFile, seek1, SEEK_SET))
+            return false;
 
 		u8 buf[2][18];
-		fseek(recordingFile, seek1, SEEK_SET);
 		int rSize = fread(buf, 1, RecordingBlockDataSize, recordingFile);
 		if (rSize != RecordingBlockDataSize)
 		{
 			recordingConLog(wxString::Format("[REC]: Error encountered when reading from file: Expected %d bytes, read %d instead.\n", RecordingBlockDataSize, rSize));
 			return false;
 		}
-		fseek(recordingFile, seek2, SEEK_SET);
+
+		if (fseek(recordingFile, seek2, SEEK_SET))
+            return false;
+
 		rSize = fwrite(buf, 1, RecordingBlockDataSize, recordingFile);
 		if (rSize != RecordingBlockDataSize)
 		{
@@ -232,9 +240,11 @@ bool InputRecordingFile::InsertPadData(unsigned long frame, const PadData& key)
 			return false;
 		}
 	}
-	long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
-	fseek(recordingFile, seek, SEEK_SET);
-	int rSize = fwrite(key.buf, 1, RecordingBlockDataSize, recordingFile);
+	const long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
+    if (fseek(recordingFile, seek, SEEK_SET))
+        return false;
+
+	const int rSize = fwrite(key.buf, 1, RecordingBlockDataSize, recordingFile);
 	if (rSize != RecordingBlockDataSize)
 	{
 		recordingConLog(wxString::Format("[REC]: Error encountered when writing to file: Expected %d bytes, wrote %d instead.\n", RecordingBlockDataSize, rSize));
@@ -258,12 +268,12 @@ bool InputRecordingFile::UpdatePadData(unsigned long frame, const PadData& key)
 		return false;
 	}
 
-	long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
-	fseek(recordingFile, seek, SEEK_SET);
+	const long seek = GetBlockSeekPoint(frame) + RecordingBlockHeaderSize;
+    if (fseek(recordingFile, seek, SEEK_SET))
+        return false;
+
 	if (fwrite(key.buf, 1, RecordingBlockDataSize, recordingFile) == 0)
-	{
 		return false;
-	}
 
 	fflush(recordingFile);
 	return true;
@@ -325,25 +335,26 @@ bool InputRecordingFile::WriteHeader()
 bool InputRecordingFile::WriteMaxFrame()
 {
 	if (recordingFile == NULL)
-	{
 		return false;
-	}
-	fseek(recordingFile, RecordingSeekpointFrameMax, SEEK_SET);
+
+	if(fseek(recordingFile, RecordingSeekpointFrameMax, SEEK_SET))
+		return false;
+
 	if (fwrite(&MaxFrame, 4, 1, recordingFile) != 1)
-	{
 		return false;
-	}
+
 	return true;
 }
 
 void InputRecordingFile::UpdateFrameMax(unsigned long frame)
 {
 	if (recordingFile == NULL || MaxFrame >= frame)
-	{
 		return;
-	}
+
 	MaxFrame = frame;
-	fseek(recordingFile, RecordingSeekpointFrameMax, SEEK_SET);
+	if (fseek(recordingFile, RecordingSeekpointFrameMax, SEEK_SET))
+		return;
+
 	fwrite(&MaxFrame, 4, 1, recordingFile);
 }
 
@@ -351,10 +362,11 @@ void InputRecordingFile::AddUndoCount()
 {
 	UndoCount++;
 	if (recordingFile == NULL)
-	{
 		return;
-	}
-	fseek(recordingFile, RecordingSeekpointUndoCount, SEEK_SET);
+
+	if (fseek(recordingFile, RecordingSeekpointUndoCount, SEEK_SET))
+        return;
+
 	fwrite(&UndoCount, 4, 1, recordingFile);
 }
 
