@@ -31,7 +31,8 @@
 #define GTK3_MONITOR_API GTK_CHECK_VERSION(3, 22, 0)
 #define GTK3_GRID_API GTK_CHECK_VERSION(3, 12, 0)
 
-static GtkWidget* s_hack_frame;
+static GtkWidget* s_rend_hack_frame;
+static GtkWidget* s_ups_hack_frame;
 
 bool BigEnough()
 {
@@ -151,7 +152,8 @@ void CB_ToggleCheckBox(GtkToggleButton *togglebutton, gpointer user_data)
 	char* opt = (char*)user_data;
 	theApp.SetConfig(opt, (int)gtk_toggle_button_get_active(togglebutton));
 	if (strcmp(opt, "UserHacks") == 0) {
-		gtk_widget_set_sensitive(s_hack_frame, gtk_toggle_button_get_active(togglebutton));
+		gtk_widget_set_sensitive(s_rend_hack_frame, gtk_toggle_button_get_active(togglebutton));
+		gtk_widget_set_sensitive(s_ups_hack_frame, gtk_toggle_button_get_active(togglebutton));
 	}
 }
 
@@ -438,69 +440,79 @@ static void CreateSkipdrawSpinButtons(double min, double max)
 	g_signal_connect(s_hack_skipdraw_spin, "value-changed", G_CALLBACK(CB_SkipdrawRange), nullptr);
 }
 
-void populate_hack_table(GtkWidget* hack_table)
+void populate_rend_hack_table(GtkWidget* rend_hack_table)
 {
-	GtkWidget* hack_offset_label   = left_label("Half-pixel Offset:");
-	GtkWidget* hack_offset_box     = CreateComboBoxFromVector(theApp.m_gs_offset_hack, "UserHacks_HalfPixelOffset");
 	GtkWidget* hack_skipdraw_label = left_label("Skipdraw Range:");
 	CreateSkipdrawSpinButtons(0, 10000);
-	GtkWidget* hack_wild_check     = CreateCheckBox("Wild Arms Hack", "UserHacks_WildHack");
-	GtkWidget* hack_tco_label      = left_label("Texture Offsets:");
-	GtkWidget* hack_tco_x_spin     = CreateSpinButton(0, 10000, "UserHacks_TCOffsetX");
-	GtkWidget* hack_tco_y_spin     = CreateSpinButton(0, 10000, "UserHacks_TCOffsetY");
-	GtkWidget* align_sprite_check  = CreateCheckBox("Align Sprite", "UserHacks_align_sprite_X");
 	GtkWidget* preload_gs_check    = CreateCheckBox("Preload Frame Data", "preload_frame_with_gs_data");
 	GtkWidget* hack_fast_inv       = CreateCheckBox("Fast Texture Invalidation", "UserHacks_DisablePartialInvalidation");
 	GtkWidget* hack_depth_check    = CreateCheckBox("Disable Depth Emulation", "UserHacks_DisableDepthSupport");
 	GtkWidget* hack_safe_features  = CreateCheckBox("Disable Safe Features", "UserHacks_Disable_Safe_Features");
 	GtkWidget* hack_cpu_fbcv       = CreateCheckBox("Frame Buffer Conversion", "UserHacks_CPU_FB_Conversion");
 	GtkWidget* hack_auto_flush     = CreateCheckBox("Auto Flush", "UserHacks_AutoFlush");
-	GtkWidget* hack_merge_sprite   = CreateCheckBox("Merge Sprite", "UserHacks_merge_pp_sprite");
 	GtkWidget* hack_wrap_mem       = CreateCheckBox("Memory Wrapping", "wrap_gs_mem");
-
-	GtkWidget* stretch_hack_box    = CreateComboBoxFromVector(theApp.m_gs_hack, "UserHacks_round_sprite_offset");
-	GtkWidget* stretch_hack_label  = left_label("Round Sprite:");
 	GtkWidget* trilinear_box       = CreateComboBoxFromVector(theApp.m_gs_trifilter, "UserHacks_TriFilter");
 	GtkWidget* trilinear_label     = left_label("Trilinear Filtering:");
 
 	// Reuse windows helper string :)
-	AddTooltip(hack_offset_label, IDC_OFFSETHACK);
-	AddTooltip(hack_offset_box, IDC_OFFSETHACK);
 	AddTooltip(hack_skipdraw_label, IDC_SKIPDRAWHACK);
 	AddTooltip(s_hack_skipdraw_offset_spin, IDC_SKIPDRAWHACK);
 	AddTooltip(s_hack_skipdraw_spin, IDC_SKIPDRAWHACK);
-	AddTooltip(hack_wild_check, IDC_WILDHACK);
-	AddTooltip(hack_tco_label, IDC_TCOFFSETX);
-	AddTooltip(hack_tco_x_spin, IDC_TCOFFSETX);
-	AddTooltip(hack_tco_y_spin, IDC_TCOFFSETX);
-	AddTooltip(align_sprite_check, IDC_ALIGN_SPRITE);
-	AddTooltip(stretch_hack_label, stretch_hack_box, IDC_ROUND_SPRITE);
 	AddTooltip(preload_gs_check, IDC_PRELOAD_GS);
 	AddTooltip(hack_fast_inv, IDC_FAST_TC_INV);
 	AddTooltip(hack_depth_check, IDC_TC_DEPTH);
 	AddTooltip(hack_cpu_fbcv, IDC_CPU_FB_CONVERSION);
 	AddTooltip(hack_auto_flush, IDC_AUTO_FLUSH_HW);
 	AddTooltip(hack_safe_features, IDC_SAFE_FEATURES);
-	AddTooltip(hack_merge_sprite, IDC_MERGE_PP_SPRITE);
 	AddTooltip(hack_wrap_mem, IDC_MEMORY_WRAPPING);
 	AddTooltip(trilinear_box, IDC_TRI_FILTER);
 	AddTooltip(trilinear_label, IDC_TRI_FILTER);
 
 
 	s_table_line = 0;
-	// Hacks
+
 	// Column one and two HW Hacks
-	InsertWidgetInTable(hack_table , align_sprite_check  , hack_cpu_fbcv);
-	InsertWidgetInTable(hack_table , hack_auto_flush     , hack_wrap_mem);
-	InsertWidgetInTable(hack_table , hack_depth_check    , hack_merge_sprite);
-	InsertWidgetInTable(hack_table , hack_safe_features  , preload_gs_check);
-	InsertWidgetInTable(hack_table , hack_fast_inv       , hack_wild_check);
+	InsertWidgetInTable(rend_hack_table , hack_auto_flush    , hack_cpu_fbcv);
+	InsertWidgetInTable(rend_hack_table , hack_depth_check   , hack_wrap_mem);
+	InsertWidgetInTable(rend_hack_table , hack_safe_features , preload_gs_check);
+	InsertWidgetInTable(rend_hack_table , hack_fast_inv);
 	// Other upscaling hacks
-	InsertWidgetInTable(hack_table , trilinear_label     , trilinear_box);
-	InsertWidgetInTable(hack_table , hack_offset_label   , hack_offset_box);
-	InsertWidgetInTable(hack_table , stretch_hack_label  , stretch_hack_box );
-	InsertWidgetInTable(hack_table , hack_skipdraw_label , s_hack_skipdraw_offset_spin, s_hack_skipdraw_spin);
-	InsertWidgetInTable(hack_table , hack_tco_label      , hack_tco_x_spin, hack_tco_y_spin);
+	InsertWidgetInTable(rend_hack_table , trilinear_label     , trilinear_box);
+	InsertWidgetInTable(rend_hack_table , hack_skipdraw_label , s_hack_skipdraw_offset_spin, s_hack_skipdraw_spin);
+}
+
+void populate_ups_hack_table(GtkWidget* ups_hack_table)
+{
+	GtkWidget* align_sprite_check  = CreateCheckBox("Align Sprite", "UserHacks_align_sprite_X");
+	GtkWidget* hack_merge_sprite   = CreateCheckBox("Merge Sprite", "UserHacks_merge_pp_sprite");
+	GtkWidget* hack_wild_check     = CreateCheckBox("Wild Arms Hack", "UserHacks_WildHack");
+	GtkWidget* hack_offset_label   = left_label("Half-pixel Offset:");
+	GtkWidget* hack_offset_box     = CreateComboBoxFromVector(theApp.m_gs_offset_hack, "UserHacks_HalfPixelOffset");
+	GtkWidget* stretch_hack_box    = CreateComboBoxFromVector(theApp.m_gs_hack, "UserHacks_round_sprite_offset");
+	GtkWidget* stretch_hack_label  = left_label("Round Sprite:");
+	GtkWidget* hack_tco_label      = left_label("Texture Offsets:");
+	GtkWidget* hack_tco_x_spin     = CreateSpinButton(0, 10000, "UserHacks_TCOffsetX");
+	GtkWidget* hack_tco_y_spin     = CreateSpinButton(0, 10000, "UserHacks_TCOffsetY");
+
+
+	// Reuse windows helper string :)
+	AddTooltip(hack_offset_label, IDC_OFFSETHACK);
+	AddTooltip(hack_offset_box, IDC_OFFSETHACK);
+	AddTooltip(hack_wild_check, IDC_WILDHACK);
+	AddTooltip(hack_tco_label, IDC_TCOFFSETX);
+	AddTooltip(hack_tco_x_spin, IDC_TCOFFSETX);
+	AddTooltip(hack_tco_y_spin, IDC_TCOFFSETX);
+	AddTooltip(align_sprite_check, IDC_ALIGN_SPRITE);
+	AddTooltip(stretch_hack_label, stretch_hack_box, IDC_ROUND_SPRITE);
+	AddTooltip(hack_merge_sprite, IDC_MERGE_PP_SPRITE);
+
+
+	s_table_line = 0;
+
+	InsertWidgetInTable(ups_hack_table, align_sprite_check , hack_merge_sprite, hack_wild_check);
+	InsertWidgetInTable(ups_hack_table, hack_offset_label  , hack_offset_box);
+	InsertWidgetInTable(ups_hack_table, stretch_hack_label , stretch_hack_box );
+	InsertWidgetInTable(ups_hack_table, hack_tco_label     , hack_tco_x_spin, hack_tco_y_spin);
 }
 
 void populate_main_table(GtkWidget* main_table)
@@ -651,13 +663,14 @@ bool RunLinuxDialog()
 		gtk_box_pack_start(GTK_BOX(main_box), logo_image, true, true, 0);
 	}
 
-	GtkWidget* main_table   = CreateTableInBox(main_box    , NULL                                   , 2  , 2);
+	GtkWidget* main_table   = CreateTableInBox(main_box    , NULL                                   , 2 , 2);
 
-	GtkWidget* hw_table     = CreateTableInBox(central_box , "Hardware Mode Settings"               , 7  , 2);
-	GtkWidget* sw_table     = CreateTableInBox(central_box , "Software Mode Settings"               , 2  , 2);
+	GtkWidget* hw_table     = CreateTableInBox(central_box , "Hardware Mode Settings"               , 7 , 2);
+	GtkWidget* sw_table     = CreateTableInBox(central_box , "Software Mode Settings"               , 2 , 2);
 
-	GtkWidget* hack_table   = CreateTableInBox(advanced_box, "Hacks"                                , 7 , 2);
-	GtkWidget* gl_table     = CreateTableInBox(advanced_box, "OpenGL Very Advanced Custom Settings" , 6 , 2);
+	GtkWidget* rend_hack_table = CreateTableInBox(advanced_box, "Rendering Hacks"                   , 7 , 2);
+	GtkWidget* ups_hack_table  = CreateTableInBox(advanced_box, "Upscaling Hacks"                   , 7 , 2);
+	GtkWidget* gl_table     = CreateTableInBox(advanced_box, "OpenGL Advanced Settings"             , 6 , 2);
 
 	GtkWidget* record_table = CreateTableInBox(debug_box   , "Recording Settings"                   , 4  , 3);
 	GtkWidget* debug_table  = CreateTableInBox(debug_box   , "OpenGL / GSdx Debug Settings"         , 6  , 3);
@@ -672,7 +685,8 @@ bool RunLinuxDialog()
 	populate_hw_table(hw_table);
 	populate_sw_table(sw_table);
 
-	populate_hack_table(hack_table);
+	populate_rend_hack_table(rend_hack_table);
+	populate_ups_hack_table(ups_hack_table);
 	populate_gl_table(gl_table);
 
 	populate_debug_table(debug_table);
@@ -692,8 +706,10 @@ bool RunLinuxDialog()
 	gtk_container_add(GTK_CONTAINER(main_box), notebook);
 
 	// Enable/disable hack frame based on enable option
-	s_hack_frame = hack_table;
-	gtk_widget_set_sensitive(s_hack_frame, theApp.GetConfigB("UserHacks"));
+	s_rend_hack_frame = rend_hack_table;
+	s_ups_hack_frame = ups_hack_table;
+	gtk_widget_set_sensitive(s_rend_hack_frame, theApp.GetConfigB("UserHacks"));
+	gtk_widget_set_sensitive(s_ups_hack_frame, theApp.GetConfigB("UserHacks"));
 
 	// Put the box in the dialog and show it to the world.
 	gtk_container_add (GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), main_box);
