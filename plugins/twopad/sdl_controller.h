@@ -82,3 +82,5 @@ class sdl_controller
             key_to_sdl[pad][PAD_R_LEFT] = SDL_CONTROLLER_AXIS_RIGHTX;
         }
 };
+
+extern std::vector<sdl_controller*> sdl_pad;
