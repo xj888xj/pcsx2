@@ -55,6 +55,8 @@ void configDialog::addGamepad(padControls &pad, const wxString controllerName)
     rev->Add(pad.ReversedLY);
 
     pad.Rumble = new wxCheckBox(panel, wxID_ANY, "Rumble");
+    // Rumble isn't implemented yet.
+    pad.Rumble->Disable();
 
     pad.Box->Add(pad.Ctl);
     pad.Box->Add(rev);
@@ -68,8 +70,8 @@ configDialog::configDialog( wxWindow * parent, wxWindowID id, const wxString & t
     panel = new wxPanel(this, -1);
     auto sizer = new wxBoxSizer(wxVERTICAL);
 
-    addGamepad(pad1, _T("Controller 1 (nonfunctional)"));
-    addGamepad(pad2, _T("Controller 2 (nonfunctional)"));
+    addGamepad(pad1, _T("Controller 1"));
+    addGamepad(pad2, _T("Controller 2"));
     
     sizer->Add(pad1.Box, 1, wxEXPAND | wxALL, 5);
     sizer->Add(
@@ -92,6 +94,17 @@ void configDialog::setValues()
 
     pad2.ReversedLX->SetValue(ps2_gamepad[1].reversed_lx);
     pad2.ReversedLY->SetValue(ps2_gamepad[1].reversed_ly);
+
+    if (ps2_gamepad[0].controller_attached == false)
+    {
+        pad1.Ctl->SetSelection(0);
+    }
+    else
+    {
+       int idx = pad1.Ctl->FindString(ps2_gamepad[0].real->name);
+       if (idx == wxNOT_FOUND) idx = 0;
+       pad1.Ctl->SetSelection(idx);
+    }
 }
 
 void configDialog::getValues()
@@ -101,6 +114,42 @@ void configDialog::getValues()
 
     ps2_gamepad[1].reversed_lx = pad2.ReversedLX->GetValue();
     ps2_gamepad[1].reversed_ly = pad2.ReversedLY->GetValue();
+
+    wxString pad1_name = pad1.Ctl->GetStringSelection();
+    if (pad1_name == _T("None"))
+    {
+        ps2_gamepad[0].controller_attached = false;
+        ps2_gamepad[0].real = nullptr;
+    }
+    else
+    {
+        for (auto pad : sdl_pad)
+        {
+            if (pad->name == pad1_name)
+            {
+                ps2_gamepad[0].controller_attached = true;
+                ps2_gamepad[0].real = pad;
+            }
+        }
+    }
+
+    wxString pad2_name = pad2.Ctl->GetStringSelection();
+    if (pad2_name == _T("None"))
+    {
+        ps2_gamepad[1].controller_attached = false;
+        ps2_gamepad[1].real = nullptr;
+    }
+    else
+    {
+        for (auto pad : sdl_pad)
+        {
+            if (pad->name == pad2_name)
+            {
+                ps2_gamepad[1].controller_attached = true;
+                ps2_gamepad[1].real = pad;
+            }
+        }
+    }
 }
 
 void configDialog::Display()

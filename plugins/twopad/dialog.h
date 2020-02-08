@@ -31,6 +31,7 @@
 #include <wx/choice.h>
 #include <wx/statline.h>
 
+#include "ps2_pad.h"
 #include "sdl_controller.h"
 
 const int DEFAULT_WIDTH = 200;
