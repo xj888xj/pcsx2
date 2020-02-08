@@ -55,8 +55,6 @@ void configDialog::addGamepad(padControls &pad, const wxString controllerName)
     rev->Add(pad.ReversedLY);
 
     pad.Rumble = new wxCheckBox(panel, wxID_ANY, "Rumble");
-    // Rumble isn't implemented yet.
-    pad.Rumble->Disable();
 
     pad.Box->Add(pad.Ctl);
     pad.Box->Add(rev);
@@ -105,6 +103,24 @@ void configDialog::setValues()
        if (idx == wxNOT_FOUND) idx = 0;
        pad1.Ctl->SetSelection(idx);
     }
+
+    if ((ps2_gamepad[0].real != nullptr) && (ps2_gamepad[0].real->rumble_supported))
+    {
+        pad1.Rumble->SetValue(ps2_gamepad[0].real->rumble);
+    }
+    else
+    {
+        pad1.Rumble->Disable();
+    }
+
+    if ((ps2_gamepad[1].real != nullptr) && (ps2_gamepad[1].real->rumble_supported))
+    {
+        pad2.Rumble->SetValue(ps2_gamepad[1].real->rumble);
+    }
+    else
+    {
+        pad2.Rumble->Disable();
+    }
 }
 
 void configDialog::getValues()
@@ -129,6 +145,7 @@ void configDialog::getValues()
             {
                 ps2_gamepad[0].controller_attached = true;
                 ps2_gamepad[0].real = pad;
+                ps2_gamepad[0].real->rumble = pad1.Rumble->GetValue();
             }
         }
     }
@@ -147,6 +164,7 @@ void configDialog::getValues()
             {
                 ps2_gamepad[1].controller_attached = true;
                 ps2_gamepad[1].real = pad;
+                ps2_gamepad[1].real->rumble = pad2.Rumble->GetValue();
             }
         }
     }
