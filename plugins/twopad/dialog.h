@@ -40,7 +40,7 @@ struct padControls
 {
     wxStaticBoxSizer *Box;
     wxChoice *Ctl;
-    wxCheckBox *RevX, *RevY, *Rumble;
+    wxCheckBox *ReversedLX, *ReversedLY, *Rumble;
 };
 
 class configDialog : public wxDialog
@@ -57,6 +57,9 @@ class configDialog : public wxDialog
 	              const wxSize & size = wxDefaultSize,
 	              long style = wxDEFAULT_DIALOG_STYLE );
         ~configDialog();
+        void Display();
+        void setValues();
+        void getValues();
 };
 
 extern configDialog *conf;

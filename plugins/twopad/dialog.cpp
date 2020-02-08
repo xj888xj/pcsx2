@@ -43,18 +43,18 @@ void configDialog::addGamepad(padControls &pad, const wxString controllerName)
     pad.Ctl = new wxChoice(
         panel, // Parent
         wxID_ANY,             // ID
-        wxDefaultPosition/*wxPoint(20, 50)*/,      // Position
+        wxDefaultPosition,      // Position
         wxDefaultSize,        // Size
         controllers);
     pad.Ctl->SetStringSelection(_T("None"));
 
     auto *rev = new wxBoxSizer(wxHORIZONTAL);
-    pad.RevX = new wxCheckBox(panel, -1, "reverse LX");
-    pad.RevY = new wxCheckBox(panel, -1, "reverse LY");
-    rev->Add(pad.RevX);
-    rev->Add(pad.RevY);
+    pad.ReversedLX = new wxCheckBox(panel, wxID_ANY, "reverse LX");
+    pad.ReversedLY = new wxCheckBox(panel, wxID_ANY, "reverse LY");
+    rev->Add(pad.ReversedLX);
+    rev->Add(pad.ReversedLY);
 
-    pad.Rumble = new wxCheckBox(panel, -1, "Rumble");
+    pad.Rumble = new wxCheckBox(panel, wxID_ANY, "Rumble");
 
     pad.Box->Add(pad.Ctl);
     pad.Box->Add(rev);
@@ -83,4 +83,29 @@ configDialog::configDialog( wxWindow * parent, wxWindowID id, const wxString & t
 configDialog::~configDialog()
 {
      Destroy();
+}
+
+void configDialog::setValues()
+{
+    pad1.ReversedLX->SetValue(ps2_gamepad[0].reversed_lx);
+    pad1.ReversedLY->SetValue(ps2_gamepad[0].reversed_ly);
+
+    pad2.ReversedLX->SetValue(ps2_gamepad[1].reversed_lx);
+    pad2.ReversedLY->SetValue(ps2_gamepad[1].reversed_ly);
+}
+
+void configDialog::getValues()
+{
+    ps2_gamepad[0].reversed_lx = pad1.ReversedLX->GetValue();
+    ps2_gamepad[0].reversed_ly = pad1.ReversedLY->GetValue();
+
+    ps2_gamepad[1].reversed_lx = pad2.ReversedLX->GetValue();
+    ps2_gamepad[1].reversed_ly = pad2.ReversedLY->GetValue();
+}
+
+void configDialog::Display()
+{
+    setValues();
+    ShowModal();
+    getValues();
 }

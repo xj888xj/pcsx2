@@ -268,7 +268,7 @@ EXPORT_C_(s32) PADsetSlot(u8 port, u8 slot)
 EXPORT_C_(void) PADconfigure()
 {
     if (!twoPadInitialized) twoPadInit();
-    if (conf != nullptr) conf->ShowModal();
+    if (conf != nullptr) conf->Display();
 }
 
 EXPORT_C_(void) PADabout()

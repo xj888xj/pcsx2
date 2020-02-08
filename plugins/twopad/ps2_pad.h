@@ -133,4 +133,9 @@ class ps2_pad
         void set(u32 index, s32 value);
 
         void commit_status();
+
+        bool reversed_lx = false;
+        bool reversed_ly = false;
+        bool reversed_rx = false;
+        bool reversed_ry = false;
 };
