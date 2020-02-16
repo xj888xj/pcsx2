@@ -47,7 +47,7 @@ struct padControls
 {
     wxStaticBoxSizer *box;
     wxChoice *controller_list;
-    wxCheckBox *reversed_lx, *reversed_ly, *rumble;
+    wxCheckBox *reversed_lx, *reversed_ly, *reversed_rx, *reversed_ry, *rumble;
 };
 
 struct keyControls

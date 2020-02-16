@@ -52,16 +52,24 @@ void configDialog::addGamepad(int cpad)
         controllers);
     controller[cpad].pad.controller_list->SetStringSelection(_T("None"));
 
-    auto *reverse_box = new wxBoxSizer(wxHORIZONTAL);
+    auto *reverse_lbox = new wxBoxSizer(wxHORIZONTAL);
+    auto *reverse_rbox = new wxBoxSizer(wxHORIZONTAL);
+
     controller[cpad].pad.reversed_lx = new wxCheckBox(gamepad_page, wxID_ANY, "reverse LX");
     controller[cpad].pad.reversed_ly = new wxCheckBox(gamepad_page, wxID_ANY, "reverse LY");
-    reverse_box->Add(controller[cpad].pad.reversed_lx);
-    reverse_box->Add(controller[cpad].pad.reversed_ly);
+    controller[cpad].pad.reversed_rx = new wxCheckBox(gamepad_page, wxID_ANY, "reverse RX");
+    controller[cpad].pad.reversed_ry = new wxCheckBox(gamepad_page, wxID_ANY, "reverse RY");
+    
+    reverse_lbox->Add(controller[cpad].pad.reversed_lx);
+    reverse_lbox->Add(controller[cpad].pad.reversed_ly);
+    reverse_rbox->Add(controller[cpad].pad.reversed_rx);
+    reverse_rbox->Add(controller[cpad].pad.reversed_ry);
 
     controller[cpad].pad.rumble = new wxCheckBox(gamepad_page, wxID_ANY, "Rumble");
 
     controller[cpad].pad.box->Add(controller[cpad].pad.controller_list);
-    controller[cpad].pad.box->Add(reverse_box);
+    controller[cpad].pad.box->Add(reverse_lbox);
+    controller[cpad].pad.box->Add(reverse_rbox);
     controller[cpad].pad.box->Add(controller[cpad].pad.rumble);
     controller[cpad].pad.box->AddSpacer(20);
 }
@@ -135,9 +143,13 @@ void configDialog::setValues()
 {
     controller[0].pad.reversed_lx->SetValue(ps2_gamepad[0]->reversed_lx);
     controller[0].pad.reversed_ly->SetValue(ps2_gamepad[0]->reversed_ly);
+    controller[0].pad.reversed_rx->SetValue(ps2_gamepad[0]->reversed_rx);
+    controller[0].pad.reversed_ry->SetValue(ps2_gamepad[0]->reversed_ry);
 
     controller[1].pad.reversed_lx->SetValue(ps2_gamepad[1]->reversed_lx);
     controller[1].pad.reversed_ly->SetValue(ps2_gamepad[1]->reversed_ly);
+    controller[1].pad.reversed_rx->SetValue(ps2_gamepad[1]->reversed_rx);
+    controller[1].pad.reversed_ry->SetValue(ps2_gamepad[1]->reversed_ry);
 
     if (ps2_gamepad[0]->controller_attached == false)
     {
@@ -173,9 +185,13 @@ void configDialog::getValues()
 {
     ps2_gamepad[0]->reversed_lx = controller[0].pad.reversed_lx->GetValue();
     ps2_gamepad[0]->reversed_ly = controller[0].pad.reversed_ly->GetValue();
+    ps2_gamepad[0]->reversed_rx = controller[0].pad.reversed_rx->GetValue();
+    ps2_gamepad[0]->reversed_ry = controller[0].pad.reversed_ry->GetValue();
 
     ps2_gamepad[1]->reversed_lx = controller[1].pad.reversed_lx->GetValue();
     ps2_gamepad[1]->reversed_ly = controller[1].pad.reversed_ly->GetValue();
+    ps2_gamepad[1]->reversed_rx = controller[1].pad.reversed_rx->GetValue();
+    ps2_gamepad[1]->reversed_ry = controller[1].pad.reversed_ry->GetValue();
 
     wxString pad1_name = controller[0].pad.controller_list->GetStringSelection();
     if (pad1_name == _T("None"))
