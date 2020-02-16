@@ -32,6 +32,9 @@ class keyboard_control
     public:
         keyboard_control();
         ~keyboard_control();
+
+        bool auto_repeat = false;
+        
         void poll_keyboard();
         void set_autorepeat(bool repeat);
         void idle();

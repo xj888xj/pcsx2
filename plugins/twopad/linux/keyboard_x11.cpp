@@ -25,10 +25,10 @@
 
 #include <array>
 #include <map>
+#include "mt_queue.h"
 
 #include "keyboard_x11.h"
 #include "ps2_pad.h"
-
 
 //Linux
 #if defined(__unix__)
@@ -41,25 +41,25 @@ std::array<x11_map, 2> x11_key_map;
 extern Display *GSdsp;
 extern Window GSwin;
 
-void SetAutoRepeat(bool autorep)
-{
-    if (GSdsp != nullptr)
-    {
-        //if (toggleAutoRepeat)
-        {
-            if (autorep)
-                XAutoRepeatOn(GSdsp);
-            else
-                XAutoRepeatOff(GSdsp);
-        }
-    }
-}
+extern keyEvent event;
+extern MtQueue<keyEvent> g_ev_fifo;
 
 static bool s_grab_input = false;
 static bool s_Shift = false;
 
 static unsigned int s_previous_mouse_x = 0;
 static unsigned int s_previous_mouse_y = 0;
+
+void SetAutoRepeat(bool autorep)
+{
+    if (GSdsp != nullptr)
+    {
+        if (autorep)
+            XAutoRepeatOn(GSdsp);
+        else
+            XAutoRepeatOff(GSdsp);
+    }
+}
 
 void init_x11_keys()
 {
@@ -94,27 +94,8 @@ void init_x11_keys()
     x11_key_map[0][PAD_R_LEFT] = XK_KP_4;
 }
 
-void AnalyzeKeyEvent(keyEvent &evt)
+void HandleEvent(keyEvent &evt, int pad, int index)
 {
-    KeySym key = (KeySym)evt.key;
-    int pad = 0;
-    int index = -1;
-
-    // Check to see if there is a key with value key that is set to any button on any controller.
-    // If there is, pad is the pad it is on, and index is the button value.
-    for(int cpad = 0; cpad < 2; cpad++)
-    {
-        for(int button = 0; button < MAX_KEYS; button++)
-        {
-            if (x11_key_map[cpad][button] == evt.key)
-            {
-                pad = cpad;
-                index = button;
-            }
-        }
-    }
-    //if (index != -1) printf("Key pressed: key = %i\n", index);
-
     switch (evt.evt)
     {
         case KeyPress:
@@ -123,9 +104,10 @@ void AnalyzeKeyEvent(keyEvent &evt)
             // 1/ Does not need to detect full-screen
             // 2/ Can use a debugger in full-screen
             // 3/ Can grab input in window without the need of a pixelated full-screen
-            if (key == XK_Shift_R || key == XK_Shift_L) s_Shift = true;
 
-            if (key == XK_F12 && s_Shift)
+            if (evt.key == XK_Shift_R || evt.key == XK_Shift_L) s_Shift = true;
+
+            if (evt.key == XK_F12 && s_Shift)
             {
                 if (!s_grab_input)
                 {
@@ -150,33 +132,33 @@ void AnalyzeKeyEvent(keyEvent &evt)
                     case PAD_R_UP:
                     case PAD_L_LEFT:
                     case PAD_L_UP:
-                        ps2_gamepad[pad].press(index, -MAX_ANALOG_VALUE);
+                        ps2_gamepad[pad]->press(index, -MAX_ANALOG_VALUE);
                         break;
 
                     case PAD_R_RIGHT:
                     case PAD_R_DOWN:
                     case PAD_L_RIGHT:
                     case PAD_L_DOWN:
-                        ps2_gamepad[pad].press(index, MAX_ANALOG_VALUE);
+                        ps2_gamepad[pad]->press(index, MAX_ANALOG_VALUE);
                         break;
                 }
             }
             else if (index != -1)
             {
-                ps2_gamepad[pad].press(index);
+                ps2_gamepad[pad]->press(index);
             }
 
             event.evt = KEYPRESS;
-            event.key = key;
+            event.key = evt.key;
             break;
 
         case KeyRelease:
-            if (key == XK_Shift_R || key == XK_Shift_L)  s_Shift = false;
+            if (evt.key == XK_Shift_R || evt.key == XK_Shift_L)  s_Shift = false;
 
-            if (index != -1) ps2_gamepad[pad].release(index);
+            if (index != -1) ps2_gamepad[pad]->release(index);
 
             event.evt = KEYRELEASE;
-            event.key = key;
+            event.key = evt.key;
             break;
 
         case FocusIn:
@@ -187,70 +169,39 @@ void AnalyzeKeyEvent(keyEvent &evt)
             break;
 
         case ButtonPress:
-            if (index != -1) ps2_gamepad[pad].press(pad, index);
+            if (index != -1) ps2_gamepad[pad]->press(pad, index);
             break;
 
         case ButtonRelease:
-            if (index != -1) ps2_gamepad[pad].release(index);
+            if (index != -1) ps2_gamepad[pad]->release(index);
             break;
 
         case MotionNotify:
-            // FIXME: How to handle when the mouse does not move, no event generated!!!
-            // 1/ small move == no move. Cons : can not do small movement
-            // 2/ use a watchdog timer thread
-            // 3/ ??? idea welcome ;)
-            /*if (conf->pad_options[pad].mouse_l | conf->pad_options[pad].mouse_r)
-            {
-                u32 pad_x, pad_y;
-
-                // Note when both PADOPTION_MOUSE_R and PADOPTION_MOUSE_L are set, take only the right one
-                if (conf->pad_options[pad].mouse_r)
-                {
-                    pad_x = PAD_R_RIGHT;
-                    pad_y = PAD_R_UP;
-                }
-                else
-                {
-                    pad_x = PAD_L_RIGHT;
-                    pad_y = PAD_L_UP;
-                }
-
-                u32 x = evt.key & 0xFFFF;
-                u32 value = (s_previous_mouse_x > x) ? s_previous_mouse_x - x : x - s_previous_mouse_x;
-                //value *= conf->get_sensibility();
-
-                if (x == 0)
-                    ps2_gamepad[pad].press(pad_x, -MAX_ANALOG_VALUE);
-                else if (x == 0xFFFF)
-                    ps2_gamepad[pad].press(pad_x, MAX_ANALOG_VALUE);
-                else if (x < (s_previous_mouse_x - 2))
-                    ps2_gamepad[pad].press(pad_x, -value);
-                else if (x > (s_previous_mouse_x + 2))
-                    ps2_gamepad[pad].press(pad_x, value);
-                else
-                    ps2_gamepad[pad].release(pad_x);
-
-
-                u32 y = evt.key >> 16;
-                value = (s_previous_mouse_y > y) ? s_previous_mouse_y - y : y - s_previous_mouse_y;
-                //value *= conf->get_sensibility();
-
-                if (y == 0)
-                    ps2_gamepad[pad].press(pad_y, -MAX_ANALOG_VALUE);
-                else if (y == 0xFFFF)
-                    ps2_gamepad[pad].press(pad_y, MAX_ANALOG_VALUE);
-                else if (y < (s_previous_mouse_y - 2))
-                    ps2_gamepad[pad].press(pad_y, -value);
-                else if (y > (s_previous_mouse_y + 2))
-                    ps2_gamepad[pad].press(pad_y, value);
-                else
-                    ps2_gamepad[pad].release(pad_y);
-
-                s_previous_mouse_x = x;
-                s_previous_mouse_y = y;
-            }*/
+            // Reimplement later.
             break;
     }
+}
+
+void AnalyzeKeyEvent(keyEvent &evt)
+{
+    int pad = 0;
+    int index = -1;
+
+    // Check to see if there is a key with value key that is set to any button on any controller.
+    // If there is, pad is the pad it is on, and index is the button value.
+    for(int cpad = 0; cpad < 2; cpad++)
+    {
+        for(int button = 0; button < MAX_KEYS; button++)
+        {
+            if (x11_key_map[cpad][button] == evt.key)
+            {
+                pad = cpad;
+                index = button;
+            }
+        }
+    }
+    //if (index != -1) printf("Key pressed: key = %i\n", index);
+    HandleEvent(evt, pad, index);
 }
 
 void PollForX11KeyboardInput()

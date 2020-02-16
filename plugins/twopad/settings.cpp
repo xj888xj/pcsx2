@@ -51,6 +51,7 @@ void save_config()
                 fprintf(f, "[%d][%d] = 0x%x\n", pad, key, keys->get_key(pad, key));
             }
         }
+        fprintf(f, "auto_repeat = %x\n", keys->auto_repeat);
         fclose(f);
     }
     else
@@ -65,6 +66,7 @@ void load_config()
 {
     FILE *f;
     const std::string ini_file(ini_path + "TwoPad.ini");
+    u32 value = 0;
 
     f = fopen(ini_file.c_str(), "r");
     if (f != nullptr)
@@ -84,6 +86,10 @@ void load_config()
                     keys->set_key(pad, key, temp);
             }
         }
+        
+        if (fscanf(f, "auto_repeat = %x\n", &value) > 0)
+            keys->auto_repeat = value;
+
         fclose(f);
     }
     else

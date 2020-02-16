@@ -47,9 +47,12 @@ void keyboard_control::poll_keyboard()
 
 void keyboard_control::set_autorepeat(bool repeat)
 {
-    #if defined(__unix__)
-    SetAutoRepeat(repeat);
-    #endif
+    if (auto_repeat)
+    {
+        #if defined(__unix__)
+        SetAutoRepeat(repeat);
+        #endif
+    }
 }
 
 void keyboard_control::idle()
@@ -92,6 +95,8 @@ void keyboard_control::set_key(int cpad, int key, KeySym val)
 
 const char* keyboard_control::key_to_string(KeySym k)
 {
+    if (k <= 0) return "<not set>";
+
     return KeyToString(k);
 }
 #endif

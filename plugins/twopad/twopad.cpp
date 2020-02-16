@@ -20,8 +20,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-#include "twopad.h"
 #include "mt_queue.h"
+
+#include "twopad.h"
 #include "poll.h"
 #include "ps2_pad.h"
 #include "sdl_controller.h"
@@ -40,7 +41,7 @@ keyEvent event;
 static keyEvent s_event;
 MtQueue<keyEvent> g_ev_fifo;
 
-std::array<ps2_pad, 2>ps2_gamepad;
+std::array<ps2_pad*, 2>ps2_gamepad;
 
 #include "keyboard.h"
 
@@ -61,20 +62,26 @@ EXPORT_C_(u32) PS2EgetLibVersion2(u32 type)
 
 void twoPadInit()
 {
-    init_sdl();
+    if (twoPadInitialized == false)
+    {
+        if (ps2_gamepad[0] == nullptr) ps2_gamepad[0] = new ps2_pad(0);
+        if (ps2_gamepad[1] == nullptr) ps2_gamepad[1] = new ps2_pad(1);
 
-    if (keys == nullptr) keys = new keyboard_control();
-    if (conf == nullptr) initDialog();
+        init_sdl();
 
-    twoPadInitialized = true;
+        if (keys == nullptr) keys = new keyboard_control();
+        if (conf == nullptr) initDialog();
+
+        twoPadInitialized = true;
+    }
 }
 
 void twoPadReset()
 {
     Pad::reset_all();
     query.reset();
-    ps2_gamepad[0].Init();
-    ps2_gamepad[1].Init();
+    ps2_gamepad[0]->reset();
+    ps2_gamepad[1]->reset();
     slots = {0, 0};
 }
 
@@ -177,18 +184,19 @@ EXPORT_C_(void) PADupdate(int pad)
     // Poll keyboard/mouse event. There is currently no way to separate pad0 from pad1 event.
     // So we will populate both pads at the same time.
 
-    ps2_gamepad[0].keyboard_state_access();
-    ps2_gamepad[1].keyboard_state_access();
+    ps2_gamepad[0]->keyboard_state_access();
+    ps2_gamepad[1]->keyboard_state_access();
 
     keys->poll_keyboard();
 
-    ps2_gamepad[0].joystick_state_access();
-    ps2_gamepad[1].joystick_state_access();
+    ps2_gamepad[0]->joystick_state_access();
+    ps2_gamepad[1]->joystick_state_access();
 
-    PollForJoystickInput();
+     ps2_gamepad[0]->poll_joystick();
+     ps2_gamepad[1]->poll_joystick();
 
-    ps2_gamepad[0].commit_status();
-    ps2_gamepad[1].commit_status();
+    ps2_gamepad[0]->commit_status();
+    ps2_gamepad[1]->commit_status();
 
     Pad::rumble_all();
 }
