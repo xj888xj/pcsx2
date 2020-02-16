@@ -23,6 +23,8 @@
 #include "dialog.h"
 #include "settings.h"
 
+#include "linux/keyboard_x11.h"
+
 configDialog *conf;
 
 void initDialog()
@@ -63,24 +65,27 @@ void configDialog::addGamepad(padControls &pad, const wxString controllerName)
     pad.box->AddSpacer(20);
 }
 
-void configDialog::addKeyboard(keyControls &keys, const wxString controllerName)
+void configDialog::addKeyboard(keyControls &key_controls, const wxString controllerName)
 {
     std::array<wxString, MAX_KEYS - 1> key_label = { "L2", "R2", "L1", "R1", "Triangle", "Circle", "Cross", "Square", "L3", "R3", "Start",
     "Pad Up", "Pad Right", "Pad Down", "Pad Left", 
     "Left Stick Up", "Left Stick Right", "Left Stick Down", "Left Stick Left", 
     "Right Stick Up", "Right Stick Right", "Right Stick Down", "Right Stick Left"};
-    keys.box = new wxStaticBoxSizer(wxVERTICAL, keyboard_page, controllerName);
+    key_controls.box = new wxStaticBoxSizer(wxVERTICAL, keyboard_page, controllerName);
 
     int i = 0;
     for (auto label : key_label)
     {
         auto *box = new wxBoxSizer(wxHORIZONTAL);
-        box->Add(new wxStaticText(keyboard_page, wxID_ANY, label), wxSizerFlags().Expand().Left());
+        auto label_text = label + " = '" + keys->control_to_string(0, i) + "'";
+
+        key_controls.set_control[i] = new wxButton(keyboard_page, 100 + i, _T("Set"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        key_controls.set_control[i]->Disable();
+        box->Add(key_controls.set_control[i], wxSizerFlags().Expand().Right());
+
+        box->Add(new wxStaticText(keyboard_page, wxID_ANY, label_text), wxSizerFlags().Expand().Left());
         box->AddStretchSpacer();
-        keys.set_control[i] = new wxButton(keyboard_page, 100 + i, _T("Set"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-        keys.set_control[i]->Disable();
-        box->Add(keys.set_control[i], wxSizerFlags().Expand().Right());
-        keys.box->Add(box, wxSizerFlags().Expand().Center());
+        key_controls.box->Add(box, wxSizerFlags().Expand().Center());
         i++;
     }
 }

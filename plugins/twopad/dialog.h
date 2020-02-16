@@ -38,6 +38,7 @@
 
 #include "ps2_pad.h"
 #include "sdl_controller.h"
+#include "keyboard.h"
 
 const int DEFAULT_WIDTH = 400;
 const int DEFAULT_HEIGHT = 430;
@@ -63,7 +64,7 @@ class configDialog : public wxDialog
         wxScrolledWindow *gamepad_page, *keyboard_page;
 
         void addGamepad(padControls &pad, const wxString controllerName);
-        void addKeyboard(keyControls &keys, const wxString controllerName);
+        void addKeyboard(keyControls &key_controls, const wxString controllerName);
 
     public:
         configDialog ( wxWindow * parent, wxWindowID id, const wxString & title,

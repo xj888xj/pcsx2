@@ -48,7 +48,7 @@ void save_config()
         {
             for (int key = 0; key < MAX_KEYS; key++)
             {
-                fprintf(f, "[%d][%d] = 0x%x\n", pad, key, x11_key_map[pad][key]);
+                fprintf(f, "[%d][%d] = 0x%x\n", pad, key, keys->get_key(pad, key));
             }
         }
         fclose(f);
@@ -81,7 +81,7 @@ void load_config()
                 if (fscanf(f, str, &temp) <= 0)
                     temp = 0;
                 else
-                    x11_key_map[pad][key] = temp;
+                    keys->set_key(pad, key, temp);
             }
         }
         fclose(f);

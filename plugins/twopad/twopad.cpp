@@ -42,13 +42,7 @@ MtQueue<keyEvent> g_ev_fifo;
 
 std::array<ps2_pad, 2>ps2_gamepad;
 
-//Linux
-#if defined(__unix__)
-Display *GSdsp;
-Window GSwin;
-
-#include "linux/keyboard_x11.h"
-#endif
+#include "keyboard.h"
 
 EXPORT_C_(u32) PS2EgetLibType()
 {
@@ -68,11 +62,10 @@ EXPORT_C_(u32) PS2EgetLibVersion2(u32 type)
 void twoPadInit()
 {
     init_sdl();
-#if defined(__unix__)
-    init_x11_keys();
-#endif
 
+    if (keys == nullptr) keys = new keyboard_control();
     if (conf == nullptr) initDialog();
+
     twoPadInitialized = true;
 }
 
@@ -97,14 +90,13 @@ EXPORT_C_(s32) PADinit(u32 flags)
 // Called if emulation is started or restarted.
 EXPORT_C_(s32) PADopen(void *pDsp)
 {
-    g_ev_fifo.reset();
-
-#if defined(__unix__)
+    #if defined(__unix__)
     GSdsp = *(Display **)pDsp;
     GSwin = (Window) * (((u32 *)pDsp) + 1);
-
-    SetAutoRepeat(false);
-#endif
+    #endif
+    
+    g_ev_fifo.reset();
+    keys->set_autorepeat(false);
 
     return 0;
 }
@@ -113,10 +105,7 @@ EXPORT_C_(s32) PADopen(void *pDsp)
 EXPORT_C_(void) PADclose()
 {
     g_ev_fifo.reset();
-
-#if defined(__unix__)
-    SetAutoRepeat(true);
-#endif
+    keys->set_autorepeat(true);
 }
 
 // Called once.
@@ -180,19 +169,7 @@ EXPORT_C_(u32) PADquery()
 // so mutex or other multithreading primitives have to be added to maintain data integrity.
 EXPORT_C_(void) PADupdate(int pad)
 {
-#if defined(__unix__)
-    // Gamepad inputs don't count as an activity. Therefore screensaver will
-    // be fired after a couple of minutes.
-    // Emulate an user activity.
-    static int count = 0;
-    count++;
-
-    // 1 call every 4096 Vsync is enough.
-    if ((count & 0xFFF) == 0) 
-    {
-        XResetScreenSaver(GSdsp);
-    }
-#endif
+    keys->idle();
 
     // Actually PADupdate is always called with pad == 0. So you need to update both
     // pads. -- Gregory
@@ -203,9 +180,7 @@ EXPORT_C_(void) PADupdate(int pad)
     ps2_gamepad[0].keyboard_state_access();
     ps2_gamepad[1].keyboard_state_access();
 
-#if defined(__unix__)
-    PollForX11KeyboardInput();
-#endif
+    keys->poll_keyboard();
 
     ps2_gamepad[0].joystick_state_access();
     ps2_gamepad[1].joystick_state_access();

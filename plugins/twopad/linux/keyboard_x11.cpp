@@ -29,6 +29,13 @@
 #include "keyboard_x11.h"
 #include "ps2_pad.h"
 
+
+//Linux
+#if defined(__unix__)
+Display *GSdsp;
+Window GSwin;
+#endif
+
 std::array<x11_map, 2> x11_key_map;
 
 extern Display *GSdsp;
@@ -36,12 +43,15 @@ extern Window GSwin;
 
 void SetAutoRepeat(bool autorep)
 {
-    //if (toggleAutoRepeat)
+    if (GSdsp != nullptr)
     {
-        if (autorep)
-            XAutoRepeatOn(GSdsp);
-        else
-            XAutoRepeatOff(GSdsp);
+        //if (toggleAutoRepeat)
+        {
+            if (autorep)
+                XAutoRepeatOn(GSdsp);
+            else
+                XAutoRepeatOff(GSdsp);
+        }
     }
 }
 
@@ -82,7 +92,6 @@ void init_x11_keys()
     x11_key_map[0][PAD_R_RIGHT] = XK_KP_6;
     x11_key_map[0][PAD_R_DOWN] = XK_KP_2;
     x11_key_map[0][PAD_R_LEFT] = XK_KP_4;
-
 }
 
 void AnalyzeKeyEvent(keyEvent &evt)
@@ -302,4 +311,9 @@ bool PollX11KeyboardMouseEvent(u32 &pkey)
     }
 
     return false;
+}
+
+const char* KeyToString(KeySym k)
+{
+    return XKeysymToString(k);
 }
