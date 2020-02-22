@@ -53,7 +53,8 @@ struct padControls
 struct keyControls
 {
     wxStaticBoxSizer *box;
-    std::array<wxButton*, MAX_KEYS> set_control;
+    std::array<wxButton*, MAX_KEYS> set_control, clear_control;
+    std::array<wxStaticText*, MAX_KEYS> control_label;
 };
 
 struct dialog_pads
@@ -81,6 +82,7 @@ class configDialog : public wxDialog
         void Display();
         void setValues();
         void getValues();
+        void configKey(wxCommandEvent &event);
 };
 
 extern configDialog *conf;
