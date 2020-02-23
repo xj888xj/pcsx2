@@ -484,16 +484,19 @@ void GSRendererOGL::EmulateBlending(bool DATE_GL42)
 	}
 
 	// Compute the blending equation to detect special case
-	uint8 blend_index  = uint8(((ALPHA.A * 3 + ALPHA.B) * 3 + ALPHA.C) * 3 + ALPHA.D);
-	int blend_flag = dev->GetBlendFlags(blend_index);
+	const uint8 blend_index  = uint8(((ALPHA.A * 3 + ALPHA.B) * 3 + ALPHA.C) * 3 + ALPHA.D);
+	const int blend_flag = m_dev->GetBlendFlags(blend_index);
 
 	// SW Blend is (nearly) free. Let's use it.
-	bool impossible_or_free_blend = (blend_flag & (BLEND_NO_BAR|BLEND_A_MAX|BLEND_ACCU)) // Blend doesn't requires the costly barrier
+	const bool impossible_or_free_blend = (blend_flag & (BLEND_NO_BAR|BLEND_A_MAX|BLEND_ACCU)) // Blend doesn't requires the costly barrier
 		|| (m_prim_overlap == PRIM_OVERLAP_NO)	// Blend can be done in a single draw
 		|| (m_require_full_barrier);			// Another effect (for example fbmask) already requires a full barrier
 
 	// Do the multiplication in shader for blending accumulation: Cs*As + Cd or Cs*Af + Cd
 	bool accumulation_blend = !!(blend_flag & BLEND_ACCU);
+
+	// Blending doesn't require barrier
+	const bool no_barrier_blend = !!(blend_flag & BLEND_NO_BAR);
 
 	// Warning no break on purpose
 	// Note: the "fall through" comments tell gcc not to complain about not having breaks.
@@ -523,16 +526,22 @@ void GSRendererOGL::EmulateBlending(bool DATE_GL42)
 
 	// Color clip
 	if (m_env.COLCLAMP.CLAMP == 0) {
-		if (m_prim_overlap == PRIM_OVERLAP_NO) {
+		if (no_barrier_blend || m_prim_overlap == PRIM_OVERLAP_NO) {
 			// The fastest algo that requires a single pass
 			GL_INS("COLCLIP Free mode ENABLED");
 			m_ps_sel.colclip = 1;
-			//ASSERT(sw_blending);
 			sw_blending = true;
+			accumulation_blend = false; // disable the HDR algo
+		} else if (m_require_full_barrier && m_ps_sel.fbmask) {
+			// Safe FBMASK SW emulated currently,
+			// perhaps it can be extended to Slow DATE too
+			GL_INS("COLCLIP mode with FBMASK SW emulated ENABLED");
+			m_ps_sel.colclip = 1;
+			// sw_blending = true;
 			accumulation_blend = false; // disable the HDR algo
 		} else if (accumulation_blend) {
 			// A fast algo that requires 2 passes
-			GL_INS("COLCLIP Fast HDR mode ENABLED");
+			GL_INS("COLCLIP Fast HDR mode with accumulation blend ENABLED");
 			m_ps_sel.hdr = 1;
 			sw_blending  = true; // Enable sw blending for the HDR algo
 		} else if (sw_blending) {
@@ -540,8 +549,7 @@ void GSRendererOGL::EmulateBlending(bool DATE_GL42)
 			GL_INS("COLCLIP SW ENABLED (blending is %d/%d/%d/%d)", ALPHA.A, ALPHA.B, ALPHA.C, ALPHA.D);
 			m_ps_sel.colclip = 1;
 		} else {
-			// Speed hack skip previous slow algo
-			GL_INS("COLCLIP HDR Rare case ENABLED");
+			GL_INS("COLCLIP HDR mode ENABLED");
 			m_ps_sel.hdr = 1;
 		}
 	}
@@ -582,7 +590,7 @@ void GSRendererOGL::EmulateBlending(bool DATE_GL42)
 			// Disable HW blending
 			dev->OMSetBlendState();
 
-			m_require_full_barrier |= !(blend_flag & BLEND_NO_BAR);
+			m_require_full_barrier |= !no_barrier_blend;
 		}
 
 		// Require the fix alpha vlaue
@@ -593,7 +601,7 @@ void GSRendererOGL::EmulateBlending(bool DATE_GL42)
 		m_ps_sel.clr1 = !!(blend_flag & BLEND_C_CLR);
 		if (m_ps_sel.dfmt == 1 && ALPHA.C == 1) {
 			// 24 bits doesn't have an alpha channel so use 1.0f fix factor as equivalent
-			uint8 hacked_blend_index  = blend_index + 3; // +3 <=> +1 on C
+			const uint8 hacked_blend_index  = blend_index + 3; // +3 <=> +1 on C
 			dev->OMSetBlendState(hacked_blend_index, 128, true);
 		} else {
 			dev->OMSetBlendState(blend_index, ALPHA.FIX, (ALPHA.C == 2));
