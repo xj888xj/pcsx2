@@ -1531,24 +1531,34 @@ void GSDeviceOGL::DoExternalFX(GSTexture* sTex, GSTexture* dTex)
 			return;
 		}
 
+		// Avoid pasting the log every draw, not needed.
+		static bool shader_config_log = true;
+		static bool shader_file_log   = true;
+
 		std::string   config_name(theApp.GetConfigS("shaderfx_conf"));
 		std::ifstream fconfig(config_name);
 		std::stringstream config;
 		config << "#extension GL_ARB_gpu_shader5 : require\n";
-		if (fconfig.good())
+		if (!fconfig.good()) {
+			if (shader_config_log)
+				fprintf(stderr, "GSdx: External shader config '%s' not loaded.\n", config_name.c_str());
+			shader_config_log = false;
+		} else {
 			config << fconfig.rdbuf();
-		else
-			fprintf(stderr, "Warning failed to load '%s'. External Shader might be wrongly configured\n", config_name.c_str());
+			shader_config_log = true;
+		}
 
 		std::string   shader_name(theApp.GetConfigS("shaderfx_glsl"));
 		std::ifstream fshader(shader_name);
 		std::stringstream shader;
 		if (!fshader.good()) {
-			fprintf(stderr, "Error failed to load '%s'. External Shader will be disabled !\n", shader_name.c_str());
+			if (shader_file_log)
+				fprintf(stderr, "GSdx: External shader '%s' not loaded and will be disabled!\n", shader_name.c_str());
+			shader_file_log = false;
 			return;
 		}
 		shader << fshader.rdbuf();
-
+		shader_file_log = true;
 
 		m_shaderfx.cb = new GSUniformBufferOGL("eFX UBO", g_fx_cb_index, sizeof(ExternalFXConstantBuffer));
 		GLuint ps = m_shader->Compile("Extra", "ps_main", GL_FRAGMENT_SHADER, shader.str().c_str(), config.str());
