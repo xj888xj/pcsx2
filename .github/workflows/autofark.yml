@@ -23,7 +23,7 @@ jobs:
         id: sync
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
-          upstream_sync_repo: 上游仓库的用户名/上游仓库名
+          upstream_sync_repo: PCSX2/pcsx2    #上游仓库的用户名/上游仓库名
           upstream_sync_branch: main
           target_sync_branch: main
           target_repo_token: ${{ secrets.GITHUB_TOKEN }} # 自动生成，无需设置
