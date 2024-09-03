@@ -24,8 +24,8 @@ jobs:
         uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
         with:
           upstream_sync_repo: PCSX2/pcsx2    #上游仓库的用户名/上游仓库名
-          upstream_sync_branch: main
-          target_sync_branch: main
+          upstream_sync_branch: master
+          target_sync_branch: master
           target_repo_token: ${{ secrets.GITHUB_TOKEN }} # 自动生成，无需设置
 
           # 设置 test_mode 为 false 以进行实际操作
