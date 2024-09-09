@@ -16,7 +16,7 @@ jobs:
     steps:
       # 步骤 1: 运行标准的 checkout 操作
       - name: Checkout target repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 步骤 2: 运行同步操作
       - name: Sync upstream changes
